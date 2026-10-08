@@ -1,0 +1,64 @@
+{
+  "common": {
+    "home": "መነሻ",
+    "login": "ግባ",
+    "register": "ይመዝገቡ",
+    "logout": "ውጣ",
+    "dashboard": "ዳሽቦርድ",
+    "profile": "መገለጫ",
+    "settings": "ቅንብሮች",
+    "search": "ፈልግ",
+    "submit": "አስገባ",
+    "cancel": "ሰርዝ",
+    "save": "አስቀምጥ",
+    "loading": "በመጫን ላይ...",
+    "language": "ቋንቋ",
+    "email": "ኢሜይል",
+    "password": "የይለፍ ቃል",
+    "confirmPassword": "የይለፍ ቃሉን ያረጋግጡ",
+    "name": "ሙሉ ስም",
+    "phone": "ስልክ ቁጥር",
+    "required": "ይህ መረጃ ያስፈልጋል",
+    "error": "ስህተት ተፈጥሯል። እንደገና ይሞክሩ።"
+  },
+  "navbar": {
+    "brand": "የተማሪዎች ፖርታል",
+    "home": "መነሻ",
+    "about": "ስለ እኛ",
+    "courses": "ትምህርቶች",
+    "contact": "ያግኙን",
+    "login": "ግባ",
+    "register": "መለያ ፍጠር",
+    "language": "ቋንቋ"
+  },
+  "home": {
+    "title": "ወደ የተማሪዎች ፖርታል እንኳን በደህና መጡ",
+    "subtitle": "ትምህርትዎን እና የትምህርት ጉዞዎን በአንድ ቦታ ያስተዳድሩ።",
+    "getStarted": "ይጀምሩ",
+    "learnMore": "ተጨማሪ ይወቁ"
+  },
+  "login": {
+    "title": "ወደ መለያዎ ይግቡ",
+    "subtitle": "ለመቀጠል የመግቢያ መረጃዎን ያስገቡ።",
+    "submit": "ግባ",
+    "forgotPassword": "የይለፍ ቃልዎን ረሱ?",
+    "noAccount": "መለያ የለዎትም?",
+    "registerLink": "አሁን ይመዝገቡ",
+    "success": "በተሳካ ሁኔታ ገብተዋል።",
+    "invalidCredentials": "ኢሜይሉ ወይም የይለፍ ቃሉ ትክክል አይደለም።"
+  },
+  "register": {
+    "title": "አዲስ መለያ ይፍጠሩ",
+    "subtitle": "የተማሪዎች ፖርታሉን ለመጠቀም ይመዝገቡ።",
+    "submit": "መለያ ፍጠር",
+    "hasAccount": "አስቀድመው መለያ አለዎት?",
+    "loginLink": "ይግቡ",
+    "success": "ምዝገባዎ ተሳክቷል።",
+    "passwordMismatch": "የይለፍ ቃሎቹ አይዛመዱም።"
+  },
+  "footer": {
+    "copyright": "© {{year}} የተማሪዎች ፖርታል። መብቶች በሙሉ የተጠበቁ ናቸው።",
+    "privacy": "የግላዊነት ፖሊሲ",
+    "terms": "የአጠቃቀም ውሎች"
+  }
+}

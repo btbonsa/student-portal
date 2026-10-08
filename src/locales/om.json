@@ -1,0 +1,64 @@
+{
+  "common": {
+    "home": "Mana",
+    "login": "Seeni",
+    "register": "Galmaa'i",
+    "logout": "Ba'i",
+    "dashboard": "Daashboordii",
+    "profile": "Profaayilii",
+    "settings": "Qindaa'inoota",
+    "search": "Barbaadi",
+    "submit": "Ergi",
+    "cancel": "Dhiisi",
+    "save": "Olkaa'i",
+    "loading": "Fe'aa jira...",
+    "language": "Afaan",
+    "email": "Imeelii",
+    "password": "Jecha icciitii",
+    "confirmPassword": "Jecha icciitii mirkaneessi",
+    "name": "Maqaa guutuu",
+    "phone": "Lakkoofsa bilbilaa",
+    "required": "Odeeffannoon kun barbaachisaadha",
+    "error": "Dogoggorri uumameera. Maaloo irra deebi'ii yaali."
+  },
+  "navbar": {
+    "brand": "Poortaalii Barattootaa",
+    "home": "Mana",
+    "about": "Waa'ee Keenya",
+    "courses": "Koorsiiwwan",
+    "contact": "Nu Qunnamaa",
+    "login": "Seeni",
+    "register": "Herrega Uumi",
+    "language": "Afaan"
+  },
+  "home": {
+    "title": "Poortaalii Barattootaa Baga Nagaan Dhuftan",
+    "subtitle": "Barnootaa fi adeemsa barnootaa kee bakka tokkotti bulchi.",
+    "getStarted": "Jalqabi",
+    "learnMore": "Dabalataan Baradhu"
+  },
+  "login": {
+    "title": "Herrega Keetti Seeni",
+    "subtitle": "Itti fufuuf odeeffannoo seensaa kee galchi.",
+    "submit": "Seeni",
+    "forgotPassword": "Jecha icciitii kee irraanfatteettaa?",
+    "noAccount": "Herrega hin qabduu?",
+    "registerLink": "Amma galmaa'i",
+    "success": "Milkaa'inaan seenteetta.",
+    "invalidCredentials": "Imeeliin yookaan jechi icciitii sirrii miti."
+  },
+  "register": {
+    "title": "Herrega Haaraa Uumi",
+    "subtitle": "Poortaalii barattootaa fayyadamuuf galmaa'i.",
+    "submit": "Herrega Uumi",
+    "hasAccount": "Duraanis herrega qabdaa?",
+    "loginLink": "Seeni",
+    "success": "Galmeen kee milkaa'eera.",
+    "passwordMismatch": "Jechoonni icciitii wal hin siman."
+  },
+  "footer": {
+    "copyright": "© {{year}} Poortaalii Barattootaa. Mirgi hundi eegameera.",
+    "privacy": "Imaammata Iccitii",
+    "terms": "Haala Fayyadamaa"
+  }
+}
