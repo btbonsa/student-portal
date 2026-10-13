@@ -236,7 +236,7 @@ export default function PaymentPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-2xl px-4 py-10 sm:py-12 space-y-6">
-        
+
         {/* Navigation & Header */}
         <div className="space-y-3">
           <Button
@@ -277,7 +277,7 @@ export default function PaymentPage() {
         {/* Form Card */}
         <Card className="border-border/60 shadow-sm">
           <CardContent className="p-6 space-y-6">
-            
+
             {/* Registration Summary Box */}
             <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
               <div className="flex items-center justify-between border-b pb-2">
@@ -317,7 +317,7 @@ export default function PaymentPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              
+
               {/* Payment Amount Display */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -367,7 +367,19 @@ export default function PaymentPage() {
                   placeholder="e.g. TX123456789"
                 />
               </div>
-
+              <div className="mt-6 rounded-2xl border bg-card p-6 shadow-sm">
+                <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Payment Information</h2>
+                <div className="grid gap-4 sm:grid-cols-2 text-sm">
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Account Number</p>
+                    <p className="font-semibold font-mono">1000123456789</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Telebirr Number</p>
+                    <p className="font-semibold font-mono">0911234567</p>
+                  </div>
+                </div>
+              </div>
               {/* Screenshot File Dropzone */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

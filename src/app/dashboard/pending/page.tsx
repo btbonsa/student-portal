@@ -164,22 +164,7 @@ export default function PendingPage() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Payment Information */}
-        <div className="mt-6 rounded-2xl border bg-card p-6 shadow-sm">
-          <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Payment Information</h2>
-          <div className="grid gap-4 sm:grid-cols-2 text-sm">
-            <div className="space-y-0.5">
-              <p className="text-xs text-muted-foreground">Account Number</p>
-              <p className="font-semibold font-mono">1000123456789</p>
-            </div>
-            <div className="space-y-0.5">
-              <p className="text-xs text-muted-foreground">Telebirr Number</p>
-              <p className="font-semibold font-mono">0911234567</p>
-            </div>
-          </div>
-        </div>
+        )}    
 
         {/* Action Buttons */}
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
