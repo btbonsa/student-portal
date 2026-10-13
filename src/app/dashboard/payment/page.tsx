@@ -5,23 +5,38 @@ import { useRouter } from "next/navigation";
 import { getToken } from "@/lib/auth";
 import { getMyRegistration } from "../../../services/registrationservices";
 import { uploadPayment } from "../../../services/paymentservices";
-
 import type { Registration } from "../../../services/registrationservices";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ArrowLeft,
+  UploadCloud,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  FileText,
+  CreditCard,
+  Loader2,
+  Image as ImageIcon,
+  X,
+} from "lucide-react";
 
 export default function PaymentPage() {
   const router = useRouter();
 
-  const [registration, setRegistration] =
-    useState<Registration | null>(null);
-
-  const [paymentMethod, setPaymentMethod] =
-    useState("");
-
-  const [transactionReference, setTransactionReference] =
-    useState("");
-
-  const [screenshot, setScreenshot] =
-    useState<File | null>(null);
+  const [registration, setRegistration] = useState<Registration | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [transactionReference, setTransactionReference] = useState("");
+  const [screenshot, setScreenshot] = useState<File | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -43,9 +58,7 @@ export default function PaymentPage() {
         setRegistration(data);
       } catch (err) {
         setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load registration"
+          err instanceof Error ? err.message : "Failed to load registration"
         );
       } finally {
         setLoading(false);
@@ -55,9 +68,7 @@ export default function PaymentPage() {
     loadRegistration();
   }, [router]);
 
-  const handleFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
@@ -70,15 +81,13 @@ export default function PaymentPage() {
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      setError(
-        "Only JPG, JPEG, PNG, and WebP images are allowed."
-      );
+      setError("Only JPG, JPEG, PNG, and WebP image formats are supported.");
       setScreenshot(null);
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("Screenshot must be less than 5MB.");
+      setError("Payment receipt image size must be less than 5MB.");
       setScreenshot(null);
       return;
     }
@@ -87,9 +96,7 @@ export default function PaymentPage() {
     setScreenshot(file);
   };
 
-  const handleSubmit = async (
-    event: React.FormEvent
-  ) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     setError("");
@@ -103,7 +110,7 @@ export default function PaymentPage() {
     }
 
     if (!registration) {
-      setError("Registration not found.");
+      setError("Registration record not found.");
       return;
     }
 
@@ -113,7 +120,7 @@ export default function PaymentPage() {
     }
 
     if (!screenshot) {
-      setError("Please upload your payment screenshot.");
+      setError("Please upload your payment transfer receipt image.");
       return;
     }
 
@@ -124,25 +131,20 @@ export default function PaymentPage() {
         {
           amount: Number(registration.program.fee),
           payment_method: paymentMethod,
-          transaction_reference:
-            transactionReference || undefined,
+          transaction_reference: transactionReference.trim() || undefined,
           screenshot,
         },
         token
       );
 
-      setSuccess(
-        "Payment submitted successfully. Please wait for admin approval."
-      );
+      setSuccess("Payment receipt uploaded successfully! Waiting for admin clearance.");
 
       setTimeout(() => {
         router.push("/dashboard/pending");
       }, 1500);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Payment upload failed."
+        err instanceof Error ? err.message : "Payment upload failed."
       );
     } finally {
       setSubmitting(false);
@@ -151,11 +153,10 @@ export default function PaymentPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f8fafc]">
-        <div className="flex min-h-screen items-center justify-center px-4">
-        <p className="text-slate-600">
-          Loading registration...
-        </p>
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <div className="w-full max-w-xl space-y-4">
+          <Skeleton className="h-8 w-36" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
         </div>
       </main>
     );
@@ -163,56 +164,44 @@ export default function PaymentPage() {
 
   if (!registration) {
     return (
-      <main className="min-h-screen bg-[#f8fafc]">
-      <div className="px-4 py-10">
-        <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">
-            No Registration Found
-          </h1>
-
-          <p className="mt-3 text-slate-600">
-            You need to select a program before making
-            a payment.
-          </p>
-
-          <button
-            onClick={() =>
-              router.push("/dashboard/programs")
-            }
-            className="mt-6 rounded-xl bg-blue-400 px-6 py-3 font-semibold text-white hover:bg-green-900/60"
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <Card className="w-full max-w-md border-border/60 shadow-lg text-center p-6 space-y-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <FileText className="h-6 w-6" />
+          </div>
+          <CardTitle className="text-xl font-bold">No Registration Found</CardTitle>
+          <CardDescription className="text-sm">
+            You must select an academic certificate program before submitting payment.
+          </CardDescription>
+          <Button
+            onClick={() => router.push("/dashboard/programs")}
+            className="w-full bg-blue-400 hover:bg-blue-500 font-bold text-white shadow-sm"
           >
             Select Program
-          </button>
-        </div>
-        </div>
+          </Button>
+        </Card>
       </main>
     );
   }
 
   if (registration.status === "REGISTERED") {
     return (
-      <main className="min-h-screen bg-[#f8fafc]">
-      <div className="px-4 py-10">
-        <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 shadow-sm">
-          <div className="mb-4 text-4xl">✓</div>
-
-          <h1 className="text-2xl font-bold text-slate-900">
-            Registration Already Approved
-          </h1>
-
-          <p className="mt-3 text-slate-600">
-            Your payment has already been approved and
-            your registration is complete.
-          </p>
-
-          <button
-            onClick={() => router.push("/dashboard/pending")}
-            className="mt-6 rounded-xl bg-blue-400 px-6 py-3 font-semibold text-white hover:bg-green-900/60"
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <Card className="w-full max-w-md border-border/60 shadow-lg text-center p-6 space-y-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-8 w-8" />
+          </div>
+          <CardTitle className="text-xl font-bold">Registration Approved</CardTitle>
+          <CardDescription className="text-sm">
+            Your payment has been verified and your registration status is active.
+          </CardDescription>
+          <Button
+            onClick={() => router.push("/dashboard")}
+            className="w-full bg-blue-400 hover:bg-blue-500 font-bold text-white shadow-sm"
           >
-            Check Status
-          </button>
-        </div>
-        </div>
+            Go to Dashboard
+          </Button>
+        </Card>
       </main>
     );
   }
@@ -222,240 +211,225 @@ export default function PaymentPage() {
     registration.payment?.status === "PENDING"
   ) {
     return (
-      <main className="min-h-screen bg-[#f8fafc]">
-      <div className="px-4 py-10">
-        <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 shadow-sm">
-          <div className="mb-4 text-4xl">⏳</div>
-
-          <h1 className="text-2xl font-bold text-slate-900">
-            Payment Under Review
-          </h1>
-
-          <p className="mt-3 text-slate-600">
-            Your payment has been submitted successfully.
-            Please wait while an administrator reviews it.
-          </p>
-
-          <button
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <Card className="w-full max-w-md border-border/60 shadow-lg text-center p-6 space-y-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-400/10 text-blue-400">
+            <Clock className="h-8 w-8" />
+          </div>
+          <CardTitle className="text-xl font-bold">Payment Under Review</CardTitle>
+          <CardDescription className="text-sm leading-relaxed">
+            Your transfer receipt is currently being verified by an administrator.
+          </CardDescription>
+          <Button
             onClick={() => router.push("/dashboard/pending")}
-            className="mt-6 rounded-xl bg-blue-400 px-6 py-3 font-semibold text-white hover:bg-green-900/60"
+            className="w-full bg-blue-400 hover:bg-blue-500 font-bold text-white shadow-sm"
           >
             Check Status
-          </button>
-        </div>
-        </div>
+          </Button>
+        </Card>
       </main>
     );
   }
 
-  const isRejected =
-    registration.status === "PAYMENT_REJECTED";
+  const isRejected = registration.status === "PAYMENT_REJECTED";
 
   return (
-    <main className="min-h-screen bg-[#f8fafc]">
-      <div className="px-4 py-10">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-6">
-          <button
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-2xl px-4 py-10 sm:py-12 space-y-6">
+        
+        {/* Navigation & Header */}
+        <div className="space-y-3">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => router.push("/dashboard/pending")}
-            className="text-sm font-medium text-blue-400 hover:text-green-900/60"
+            className="gap-2 text-muted-foreground hover:text-foreground p-0 h-auto font-medium"
           >
-            ← Back
-          </button>
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
 
-          <h1 className="mt-4 text-3xl font-bold text-slate-900">
-            Submit Payment
-          </h1>
-
-          <p className="mt-2 text-slate-600">
-            Upload your payment information for registration.
-          </p>
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              Submit Payment
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Upload your payment receipt and transaction details for verification.
+            </p>
+          </div>
         </div>
 
-        {isRejected &&
-          registration.payment?.rejection_reason && (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-              <p className="font-semibold text-red-700">
-                Previous Payment Rejected
-              </p>
-
-              <p className="mt-1 text-sm text-red-600">
-                {registration.payment.rejection_reason}
-              </p>
-
-              <p className="mt-2 text-sm text-red-600">
-                Please correct the problem and submit
-                your payment again.
-              </p>
-            </div>
-          )}
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-          <div className="mb-6 rounded-xl bg-blue-400/5 p-5">
-            <h2 className="text-lg font-bold text-slate-900">
-              Registration Information
-            </h2>
-
-            <div className="mt-4 space-y-3">
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-500">
-                  Registration Number
-                </span>
-
-                <span className="font-semibold text-slate-900">
-                  {registration.registration_number}
-                </span>
-              </div>
-
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-500">
-                  Program
-                </span>
-
-                <span className="font-semibold text-slate-900">
-                  {registration.program.name}
-                </span>
-              </div>
-
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-500">
-                  Program Monthly_Fee
-                </span>
-
-                <span className="font-bold text-blue-400">
-                  {Number(
-                    registration.program.fee
-                  ).toLocaleString()}{" "}
-                  ETB
-                </span>
-              </div>
-            </div>
+        {/* Rejection Notice Banner */}
+        {isRejected && registration.payment?.rejection_reason && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900/50 dark:bg-rose-950/30 text-sm space-y-1">
+            <p className="font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+              <AlertCircle className="h-4 w-4" /> Previous Payment Rejected
+            </p>
+            <p className="text-rose-600 dark:text-rose-300">
+              {registration.payment.rejection_reason}
+            </p>
+            <p className="text-xs text-rose-500 dark:text-rose-400 pt-1">
+              Please correct the issue and upload a valid transfer receipt.
+            </p>
           </div>
+        )}
 
-          {error && (
-            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {error}
-            </div>
-          )}
+        {/* Form Card */}
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="p-6 space-y-6">
+            
+            {/* Registration Summary Box */}
+            <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
+              <div className="flex items-center justify-between border-b pb-2">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                  Registration Summary
+                </h2>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {registration.registration_number}
+                </Badge>
+              </div>
 
-          {success && (
-            <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-              {success}
-            </div>
-          )}
-
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-5"
-          >
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Payment Amount
-              </label>
-
-              <input
-                type="text"
-                value={`${Number(
-                  registration.program.fee
-                ).toLocaleString()} ETB`}
-                disabled
-                className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-700"
-              />
-
-              <p className="mt-1 text-xs text-slate-500">
-                Payment amount is automatically taken from
-                your selected program.
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Payment Method
-              </label>
-
-              <select
-                value={paymentMethod}
-                onChange={(e) =>
-                  setPaymentMethod(e.target.value)
-                }
-                className="w-full rounded-xl text-black border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
-              >
-                <option value="">
-                  Select payment method
-                </option>
-
-                <option value="Telebirr">
-                  Telebirr
-                </option>
-
-                <option value="CBE Birr">
-                  CBE Birr
-                </option>
-
-                <option value="Bank Transfer">
-                  Bank Transfer
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-black">
-                Transaction Reference
-                <span className="ml-1 font-normal text-gray-400">
-                  (Optional)
-                </span>
-              </label>
-
-              <input
-                type="text"
-                value={transactionReference}
-                onChange={(e) =>
-                  setTransactionReference(
-                    e.target.value
-                  )
-                }
-                placeholder="Enter transaction/reference number"
-                className="w-full rounded-xl text-black border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Payment Screenshot
-              </label>
-
-              <div className="rounded-xl border-2 border-dashed border-slate-200 p-6 text-center hover:border-blue-400">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  onChange={handleFileChange}
-                  className="w-full text-sm text-slate-600"
-                />
-
-                <p className="mt-2 text-xs text-slate-500">
-                  JPG, JPEG, PNG or WebP • Maximum 5MB
-                </p>
-
-                {screenshot && (
-                  <p className="mt-3 text-sm font-medium text-green-600">
-                    Selected: {screenshot.name}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Selected Program</p>
+                  <p className="font-semibold">{registration.program.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Program Fee</p>
+                  <p className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {Number(registration.program.fee).toLocaleString()} ETB
                   </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Error and Success Banners */}
+            {error && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400">
+                {success}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              
+              {/* Payment Amount Display */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Required Fee Amount
+                </label>
+                <div className="relative">
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    value={`${Number(registration.program.fee).toLocaleString()} ETB`}
+                    disabled
+                    className="pl-9 font-semibold bg-muted/50 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* Payment Method Select */}
+              <div className="space-y-2">
+                <label htmlFor="paymentMethod" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Payment Method
+                </label>
+                <select
+                  id="paymentMethod"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                >
+                  <option value="">Select payment method...</option>
+                  <option value="Telebirr">Telebirr</option>
+                  <option value="CBE Birr">CBE Birr</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                </select>
+              </div>
+
+              {/* Transaction Reference Input */}
+              <div className="space-y-2">
+                <label htmlFor="txRef" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                  <span>Transaction Reference</span>
+                  <span className="font-normal text-muted-foreground/60 lower-case">(Optional)</span>
+                </label>
+                <Input
+                  id="txRef"
+                  type="text"
+                  value={transactionReference}
+                  onChange={(e) => setTransactionReference(e.target.value)}
+                  placeholder="e.g. TX123456789"
+                />
+              </div>
+
+              {/* Screenshot File Dropzone */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Payment Transfer Screenshot
+                </label>
+                <div className="relative rounded-xl border-2 border-dashed border-border p-6 text-center hover:border-blue-400 transition-colors bg-muted/10">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <div className="flex flex-col items-center justify-center space-y-2 pointer-events-none">
+                    <div className="h-10 w-10 rounded-full bg-blue-400/10 text-blue-400 flex items-center justify-center">
+                      <UploadCloud className="h-5 w-5" />
+                    </div>
+                    <p className="text-sm font-medium">Click or drag & drop payment receipt image</p>
+                    <p className="text-xs text-muted-foreground">JPG, JPEG, PNG, or WebP • Max 5MB</p>
+                  </div>
+                </div>
+
+                {/* Selected File Badge Preview */}
+                {screenshot && (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-200/50 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    <span className="flex items-center gap-2 truncate">
+                      <ImageIcon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{screenshot.name}</span>
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setScreenshot(null)}
+                      className="h-6 w-6 text-emerald-700 hover:bg-emerald-200/50 rounded-full shrink-0"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 )}
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-xl bg-blue-400 px-6 py-3.5 font-bold text-white transition hover:bg-green-900/60 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting
-                ? "Uploading Payment..."
-                : "Submit Payment"}
-            </button>
-          </form>
-        </div>
-      </div>
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-blue-400 hover:bg-blue-500 font-bold text-white h-11 gap-2 shadow-sm"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Uploading Payment Receipt...
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="h-4 w-4" />
+                    Submit Payment
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );

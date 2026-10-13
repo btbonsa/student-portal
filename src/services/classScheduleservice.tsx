@@ -22,7 +22,7 @@ export const getMyClassSchedule = async (
 ): Promise<ClassSchedule> => {
   const response =
     await apiRequest<ClassScheduleResponse>(
-      "/classes/",
+      "/classes",
       {},
       token
     );

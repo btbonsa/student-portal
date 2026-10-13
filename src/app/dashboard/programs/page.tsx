@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import { getToken } from "@/lib/auth";
 import { getPrograms, Program } from "../../../services/programservices";
 import { createRegistration } from "../../../services/registrationservices";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, GraduationCap, Clock, DollarSign, Loader2, ArrowRight } from "lucide-react";
 
 export default function ProgramsPage() {
   const router = useRouter();
@@ -25,7 +37,7 @@ export default function ProgramsPage() {
 
       try {
         const data = await getPrograms();
-        setPrograms(data);
+        setPrograms(data || []);
       } catch (err) {
         setError(
           err instanceof Error
@@ -40,9 +52,7 @@ export default function ProgramsPage() {
     loadPrograms();
   }, [router]);
 
-  const handleSelectProgram = async (
-    programId: number
-  ) => {
+  const handleSelectProgram = async (programId: number) => {
     const token = getToken();
 
     if (!token) {
@@ -54,11 +64,7 @@ export default function ProgramsPage() {
       setError("");
       setSelecting(programId);
 
-      await createRegistration(
-        programId,
-        token
-      );
-
+      await createRegistration(programId, token);
       router.push("/dashboard/payment");
     } catch (err) {
       setError(
@@ -66,137 +72,142 @@ export default function ProgramsPage() {
           ? err.message
           : "Failed to select program."
       );
-    } finally {
       setSelecting(null);
     }
   };
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f8fafc]">
-        <div className="flex min-h-screen items-center justify-center px-4">
-        <p className="text-slate-600">
-          Loading programs...
-        </p>
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <div className="w-full max-w-6xl space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-72 w-full rounded-2xl" />
+            ))}
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc]">
-      <div className="px-4 py-10">
-
-      <div className="mx-auto max-w-6xl">
-
-        <div className="mb-8">
-          <button
-            onClick={() =>
-              router.push("/dashboard")
-            }
-            className="mb-4 text-sm font-semibold text-blue-400 hover:text-green-900/60"
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:py-12 space-y-8">
+        
+        {/* Navigation & Header */}
+        <div className="space-y-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/dashboard")}
+            className="gap-2 text-muted-foreground hover:text-foreground p-0 h-auto font-medium"
           >
-            ← Back to Dashboard
-          </button>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
 
-          <h1 className="text-3xl font-bold text-slate-900">
-            Choose Your Program
-          </h1>
-
-          <p className="mt-2 text-slate-500">
-            Select the program you want to register for.
-          </p>
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              Choose Your Program
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Select the certificate program you want to enroll in to proceed with your academic registration.
+            </p>
+          </div>
         </div>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400">
             {error}
           </div>
         )}
 
         {programs.length === 0 ? (
-          <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-            <h2 className="text-xl font-bold text-slate-900">
-              No Programs Available
-            </h2>
-
-            <p className="mt-2 text-slate-500">
-              There are currently no active programs.
-            </p>
-          </div>
+          <Card className="border-dashed shadow-none">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <GraduationCap className="h-6 w-6" />
+              </div>
+              <h3 className="font-semibold text-base">No Programs Available</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                There are currently no active certificate programs open for enrollment. Please check back later.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-
             {programs.map((program) => (
-              <div
+              <Card
                 key={program.id}
-                className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition-shadow hover:shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10"
+                className="group flex flex-col justify-between border-border/60 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-blue-400 hover:shadow-xl"
               >
+                <div>
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-400/10 text-blue-400 font-bold">
+                        <GraduationCap className="h-6 w-6" />
+                      </div>
+                      <Badge variant="outline" className="font-mono text-xs text-muted-foreground">
+                        Active Course
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-xl font-bold tracking-tight">
+                      {program.name}
+                    </CardTitle>
+                  </CardHeader>
 
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-400/10 text-2xl">
-                  🎓
+                  <CardContent className="space-y-4 pb-4">
+                    <CardDescription className="text-sm leading-relaxed text-muted-foreground min-h-[48px]">
+                      {program.description || "Practical, career-focused training program designed for real-world skill mastery."}
+                    </CardDescription>
+
+                    <div className="space-y-2.5 pt-4 border-t text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-blue-400" /> Duration
+                        </span>
+                        <span className="font-semibold">
+                          {program.duration || "Not specified"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <DollarSign className="h-3.5 w-3.5 text-emerald-500" /> Mothly fee
+                        </span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 text-base">
+                          {Number(program.fee).toLocaleString()} ETB
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
                 </div>
 
-                <h2 className="text-xl font-bold text-slate-900">
-                  {program.name}
-                </h2>
-
-                <p className="mt-3 flex-1 text-sm leading-6 text-slate-500">
-                  {program.description ||
-                    "No description available."}
-                </p>
-
-                <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
-
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-500">
-                      Duration
-                    </span>
-
-                    <span className="text-sm font-semibold text-slate-900">
-                      {program.duration ||
-                        "Not specified"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-500">
-                      Registration Fee
-                    </span>
-
-                    <span className="text-lg font-bold text-blue-400">
-                      {Number(
-                        program.fee
-                      ).toLocaleString()}{" "}
-                      ETB
-                    </span>
-                  </div>
-
-                </div>
-
-                <button
-                  onClick={() =>
-                    handleSelectProgram(
-                      program.id
-                    )
-                  }
-                  disabled={
-                    selecting === program.id
-                  }
-                  className="mt-6 w-full rounded-xl bg-blue-400 px-4 py-3 font-bold text-white transition hover:bg-green-900/60 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {selecting === program.id
-                    ? "Selecting..."
-                    : "Select Program"}
-                </button>
-
-              </div>
+                <CardFooter className="pt-2">
+                  <Button
+                    onClick={() => handleSelectProgram(program.id)}
+                    disabled={selecting === program.id}
+                    className="w-full bg-blue-400 hover:bg-blue-500 text-white font-bold h-11 gap-2 shadow-sm"
+                  >
+                    {selecting === program.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Enrolling...
+                      </>
+                    ) : (
+                      <>
+                        Select Program
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
             ))}
-
           </div>
         )}
 
-      </div>
       </div>
     </main>
   );

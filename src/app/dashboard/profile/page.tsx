@@ -1,113 +1,289 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getToken } from "@/lib/auth";
-import apiRequest from "@/services/apiservices";
+import { getStudentProfile, updateStudentProfile, StudentProfile } from "../../../services/studentservices";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Camera, Loader2, Save, Upload } from "lucide-react";
 
-export default function CreateProfilePage() {
+export default function ProfilePage() {
   const router = useRouter();
 
-  const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    gender: "MALE",
-    date_of_birth: "",
-  });
-
-  const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState("");
+  const [bio, setBio] = useState("");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
+  useEffect(() => {
+    const loadProfile = async () => {
+      const token = getToken();
 
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      try {
+        const data = await getStudentProfile(token);
+        console.log("Profile data loaded:", data);
+        setProfile(data);
+        setBio(data.bio || "");
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load profile."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [router]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
     const token = getToken();
+
     if (!token) {
       router.replace("/login");
       return;
     }
 
     try {
-      setLoading(true);
-      await apiRequest("/students/profile", { method: "POST", body: JSON.stringify(form) }, token);
-      router.push("/dashboard/programs");
+      setError("");
+      setUpdating(true);
+
+      const formData = new FormData();
+      if (selectedFile) {
+        formData.append("profile_photo", selectedFile);
+      }
+      if (bio !== profile?.bio) {
+        formData.append("bio", bio);
+      }
+
+      if (!selectedFile && bio === profile?.bio) {
+        setError("No changes to save");
+        setUpdating(false);
+        return;
+      }
+
+      const data = await updateStudentProfile(token, formData);
+      setProfile(data.student);
+      setPreviewImage(null);
+      setSelectedFile(null);
+
+      // Dispatch event to update avatar in header
+      if (data.student.profile_photo_url) {
+        window.dispatchEvent(new CustomEvent("profile-photo-updated", {
+          detail: data.student.profile_photo_url
+        }));
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create profile.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update profile."
+      );
     } finally {
-      setLoading(false);
+      setUpdating(false);
     }
   };
 
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+        <div className="w-full max-w-2xl space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-20 w-20 rounded-full" />
+              <Skeleton className="h-6 w-32 mt-4" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-[#f8fafc]">
-      <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-2xl px-4 py-10 sm:py-12 space-y-8">
+        
+        {/* Navigation & Header */}
+        <div className="space-y-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/dashboard")}
+            className="gap-2 text-muted-foreground hover:text-foreground p-0 h-auto font-medium"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
 
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-blue-400">Complete Your Profile</h1>
-          <p className="mt-2 text-slate-600">Fill in your details to continue.</p>
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              My Profile
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage your personal information and profile picture.
+            </p>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-lg shadow-slate-900/5 transition-shadow hover:shadow-xl">
+        {error && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400">
+            {error}
+          </div>
+        )}
 
-          {error && (
-            <div className="mb-5 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>
-          )}
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="space-y-4">
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+                  <AvatarImage src={previewImage || profile?.profile_photo_url} />
+                  <AvatarFallback className="bg-blue-400 text-white text-2xl font-bold">
+                    {profile?.first_name?.[0]}{profile?.last_name?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <label htmlFor="profile-photo" className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer hover:bg-black/60 transition-colors">
+                  <Camera className="h-6 w-6 text-white" />
+                </label>
+                <input
+                  id="profile-photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-1">
+                <CardTitle className="text-2xl">
+                  {profile?.first_name} {profile?.last_name}
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Student ID: {profile?.user_id}
+                </CardDescription>
+              </div>
+            </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">First Name</label>
-              <input
-                value={form.first_name}
-                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 text-black"
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Upload className="h-3.5 w-3.5" />
+              <span>Click on the avatar to upload a new profile photo</span>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  First Name
+                </label>
+                <Input value={profile?.first_name || ""} disabled className="bg-muted" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Last Name
+                </label>
+                <Input value={profile?.last_name || ""} disabled className="bg-muted" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Gender
+                </label>
+                <Input value={profile?.gender || ""} disabled className="bg-muted" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Date of Birth
+                </label>
+                <Input value={profile?.date_of_birth || ""} disabled className="bg-muted" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Bio
+              </label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell us about yourself..."
+                className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
               />
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Last Name</label>
-              <input
-                value={form.last_name}
-                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 text-black"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Gender</label>
-              <select
-                value={form.gender}
-                onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 text-black"
+            <div className="flex items-center gap-3 pt-4 border-t">
+              <Button
+                onClick={handleUpdateProfile}
+                disabled={updating || (!selectedFile && bio === profile?.bio)}
+                className="bg-blue-400 hover:bg-blue-500 text-white font-medium gap-2"
               >
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-              </select>
+                {updating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+
+              {selectedFile && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setPreviewImage(null);
+                  }}
+                  disabled={updating}
+                >
+                  Cancel
+                </Button>
+              )}
             </div>
+          </CardContent>
+        </Card>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Date of Birth</label>
-              <input
-                type="date"
-                value={form.date_of_birth}
-                onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
-                className="w-full rounded-lg text-black border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 text-black"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg text-black bg-blue-400 px-4 py-3 font-semibold text-white transition hover:bg-green-900/60 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Saving..." : "Continue"}
-            </button>
-
-          </form>
-        </div>
-      </div>
       </div>
     </main>
   );
