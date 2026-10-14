@@ -346,11 +346,11 @@ export default function Home() {
               <ul className="space-y-2.5 text-xs">
                 <li className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 text-blue-400 shrink-0" />
-                  <a href="tel:+25947788899" className="hover:text-blue-400 transition-colors">
-                    +251947788899
+                  <a href="tel:+251947788899" className="hover:text-blue-400 transition-colors">
+                    +251 947788899
                   </a>
                   <a href="tel:+251947628899" className="hover:text-blue-400 transition-colors">
-                    +251947628899
+                    +251 947628899
                   </a>
                 </li>
                 <li className="flex items-center gap-2.5">
@@ -376,7 +376,7 @@ export default function Home() {
               </p>
               <div className="flex items-center gap-3 pt-1">
                 <a
-                  href="tiktok.com/@logosofficial12"
+                  href="https://www.tiktok.com/@logosofficial12?_r=1&_d=f4i6b4175dlhdl&sec_uid=MS4wLjABAAAAv4gPm6tMBgCBrB-fAIDiLuiUsEvuArLRyQwrHoMeRucgYJ5OiYAO-k43mejuCG1l&share_author_id=7390807151968519173&sharer_language=en&source=h5_m&u_code=ehi68hc36c6k4f&timestamp=1791986238&user_id=7446472599016735750&sec_user_id=MS4wLjABAAAA7nJ38wpRHyRqh1LC4PXTfU_Jak5kSwfMul3DOY7ER8D471lDMV_jUsSnNrTD9o3a&item_author_type=2&utm_source=copy&utm_campaign=client_share&utm_medium=android&share_iid=7693848782064092948&share_link_id=bc11668b-5e4d-443f-b001-c2733cc7254b&share_app_id=1233&ugbiz_name=ACCOUNT&ug_btm=b6880%2Cb5836&social_share_type=5&share_enter_from=others_homepage&item_author_type=2&enable_checksum=1"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all"
