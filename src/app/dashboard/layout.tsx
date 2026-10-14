@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearAuth, getToken } from "@/lib/auth";
@@ -15,6 +16,8 @@ import {
   GraduationCap,
   ChevronDown,
 } from "lucide-react";
+
+import icon from "../../../public/icons/icon.png";
 
 function Avatar({ photoUrl, size, initials }: { photoUrl: string | null; size: number; initials?: string }) {
   const [imgError, setImgError] = useState(false);
@@ -110,15 +113,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Sidebar Navigation Drawer (Positioned on Left) ── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-card shadow-sm transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-card shadow-sm transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
+          }`}
       >
         {/* Brand Header inside Drawer */}
         <div className="flex h-16 items-center justify-between border-b px-6 bg-card/50">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-400 text-white shadow-md shadow-blue-400/20 font-bold">
-              <GraduationCap className="h-5 w-5" />
+              <Image src={icon} alt="Logos College icon" width={20} height={20} />
             </div>
             <div>
               <span className="text-sm font-bold tracking-tight block leading-none">
@@ -150,11 +152,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={href}
                 href={href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all active:scale-[0.98] ${
-                  active
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all active:scale-[0.98] ${active
                     ? "bg-blue-400 text-white shadow-md shadow-blue-400/25 font-semibold"
                     : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                }`}
+                  }`}
               >
                 <Icon className={`h-4 w-4 shrink-0 ${active ? "text-white" : "text-muted-foreground"}`} />
                 {label}
@@ -186,7 +187,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Main Layout Wrapper ── */}
       <div className="flex-1 flex flex-col lg:ml-64 min-w-0">
-        
+
         {/* Desktop Header Bar */}
         <header className="hidden lg:flex sticky top-0 z-30 h-16 items-center justify-between border-b bg-card/80 px-8 backdrop-blur-md">
           <div className="flex items-center gap-2">
@@ -243,7 +244,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Mobile Sticky Header Bar */}
         <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b bg-card/80 px-4 backdrop-blur-md lg:hidden relative">
-          
+
           {/* Left Element: Menu Toggle Button */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
