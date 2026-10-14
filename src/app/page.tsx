@@ -385,23 +385,13 @@ export default function Home() {
                   <TikTokIcon className="h-4 w-4" />
                 </a>
                 <a
-                  href="https://instagram.com"
+                  href="https://www.instagram.com/logos_4796/?utm_source=ig_web_button_share_sheet"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-gradient-to-br hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] hover:text-white dark:hover:text-white transition-all"
                   aria-label="Instagram"
                 >
                   <InstagramIcon className="h-4 w-4" />
-                </a>
-
-                <a
-                  href="https://linkedin.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-[#0A66C2] hover:text-white dark:hover:bg-[#0A66C2] dark:hover:text-white transition-all"
-                  aria-label="LinkedIn"
-                >
-                  <LinkedinIcon className="h-4 w-4" />
                 </a>
 
                 <a
