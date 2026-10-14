@@ -151,7 +151,7 @@ export default function PublicPortfolioPage() {
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl dark:border-white/10 dark:bg-[#080f1e]/85">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 sm:px-8 lg:px-10">
           <Link href="/" className="group flex items-center gap-3 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/20" aria-label="Logos College home">
-            <span className="flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-gradient-to-br from-blue-400 to-blue-500 text-white shadow-lg shadow-blue-700/20 transition-transform group-hover:-rotate-3"><Image src={icon} alt="Logos College icon" className="h-5 w-5" /></span>
+            <span className="flex h-14 w-14 items-center justify-center rounded-[0.9rem] bg-white text-white shadow-lg shadow-blue-700/20 transition-transform group-hover:-rotate-3"><Image src={icon} alt="Logos College icon" className="h-5 w-5" /></span>
             <span className="leading-tight"><span className="block text-sm font-extrabold tracking-tight">Logos <span className="text-blue-600 dark:text-blue-300">College</span></span><span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Student showcase</span></span>
           </Link>
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"><BadgeCheck className="h-3.5 w-3.5" /> Public portfolio</div>

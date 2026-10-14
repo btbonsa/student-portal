@@ -119,8 +119,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Brand Header inside Drawer */}
         <div className="flex h-16 items-center justify-between border-b px-6 bg-card/50">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-400 text-white shadow-md shadow-blue-400/20 font-bold">
-              <Image src={icon} alt="Logos College icon" width={20} height={20} />
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-white shadow-md shadow-blue-400/20 font-bold">
+              <Image src={icon} alt="Logos College icon" width={24} height={24} />
             </div>
             <div>
               <span className="text-sm font-bold tracking-tight block leading-none">
