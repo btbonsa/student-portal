@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowDown, ArrowRight, ArrowUpRight, BadgeCheck, BookOpen, Code2,
-  ExternalLink, FolderKanban, GraduationCap, Search, Sparkles, UserRound,
+  ExternalLink, FolderKanban, Search, Sparkles, UserRound,
   X,
 } from "lucide-react";
+
+import icon from "../../../../public/icons/icon.png";
 
 interface Project {
   id: number;
@@ -148,7 +151,7 @@ export default function PublicPortfolioPage() {
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl dark:border-white/10 dark:bg-[#080f1e]/85">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 sm:px-8 lg:px-10">
           <Link href="/" className="group flex items-center gap-3 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/20" aria-label="Logos College home">
-            <span className="flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-gradient-to-br from-blue-400 to-blue-500 text-white shadow-lg shadow-blue-700/20 transition-transform group-hover:-rotate-3"><GraduationCap className="h-5 w-5" /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-gradient-to-br from-blue-400 to-blue-500 text-white shadow-lg shadow-blue-700/20 transition-transform group-hover:-rotate-3"><Image src={icon} alt="Logos College icon" className="h-5 w-5" /></span>
             <span className="leading-tight"><span className="block text-sm font-extrabold tracking-tight">Logos <span className="text-blue-600 dark:text-blue-300">College</span></span><span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Student showcase</span></span>
           </Link>
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"><BadgeCheck className="h-3.5 w-3.5" /> Public portfolio</div>
@@ -209,7 +212,7 @@ export default function PublicPortfolioPage() {
         )}
       </section>
 
-      <footer className="border-t border-slate-200 bg-white dark:border-white/10 dark:bg-[#080f1e]"><div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-7 text-center sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:text-left lg:px-10"><Link href="/" className="inline-flex items-center justify-center gap-2 text-sm font-bold tracking-tight text-slate-700 transition hover:text-blue-500 dark:text-slate-200 dark:hover:text-blue-300 sm:justify-start"><GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-300" /> Logos College</Link><p className="text-xs leading-5 text-slate-500 dark:text-slate-400">© {new Date().getFullYear()} Logos College · Student Portfolio Showcase</p><a href="#projects" className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-500 transition hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-300">Back to projects <ArrowRight className="h-3.5 w-3.5" /></a></div></footer>
+      <footer className="border-t border-slate-200 bg-white dark:border-white/10 dark:bg-[#080f1e]"><div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-7 text-center sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:text-left lg:px-10"><Link href="/" className="inline-flex items-center justify-center gap-2 text-sm font-bold tracking-tight text-slate-700 transition hover:text-blue-500 dark:text-slate-200 dark:hover:text-blue-300 sm:justify-start"><Image src={icon} alt="Logos College icon" className="h-4 w-4" /> Logos College</Link><p className="text-xs leading-5 text-slate-500 dark:text-slate-400">© {new Date().getFullYear()} Logos College · Student Portfolio Showcase</p><a href="#projects" className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-500 transition hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-300">Back to projects <ArrowRight className="h-3.5 w-3.5" /></a></div></footer>
     </main>
   );
 }
