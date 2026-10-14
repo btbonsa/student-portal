@@ -116,7 +116,7 @@ export default function Home() {
             <Badge variant="outline" className="px-3 py-1 border-blue-400/40 text-blue-500 dark:text-blue-400 bg-blue-400/10 font-semibold gap-1.5 text-xs sm:text-sm">
               <Sparkles className="h-3.5 w-3.5" /> Empowering Practical Skills
             </Badge>
-            
+
             <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight max-w-4xl mx-auto leading-tight text-slate-950 dark:text-white">
               Master Practical Skills for <span className="text-blue-400">Real-World Success</span>
             </h1>
@@ -206,11 +206,11 @@ export default function Home() {
                   into real career opportunities.
                 </p>
               </div>
-              <Link 
-                href="/register" 
-                className={buttonVariants({ 
-                  variant: "link", 
-                  className: "group p-0 font-bold text-blue-400 hover:text-blue-500 hover:no-underline" 
+              <Link
+                href="/register"
+                className={buttonVariants({
+                  variant: "link",
+                  className: "group p-0 font-bold text-blue-400 hover:text-blue-500 hover:no-underline"
                 })}
               >
                 Browse all programs
@@ -254,11 +254,11 @@ export default function Home() {
                   </div>
 
                   <CardFooter className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <Link 
-                      href="/register" 
-                      className={buttonVariants({ 
-                        className: "w-full font-bold gap-2 !bg-blue-400 hover:!bg-blue-500 text-white shadow-sm border-none", 
-                        size: "sm" 
+                    <Link
+                      href="/register"
+                      className={buttonVariants({
+                        className: "w-full font-bold gap-2 !bg-blue-400 hover:!bg-blue-500 text-white shadow-sm border-none",
+                        size: "sm"
                       })}
                     >
                       Enroll Now
@@ -303,7 +303,7 @@ export default function Home() {
       <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-slate-600 dark:text-slate-400 text-sm pt-12 pb-8">
         <div className="max-w-6xl mx-auto px-5">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-slate-200 dark:border-slate-800">
-            
+
             {/* Column 1: College Identity */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -346,8 +346,11 @@ export default function Home() {
               <ul className="space-y-2.5 text-xs">
                 <li className="flex items-center gap-2.5">
                   <Phone className="h-4 w-4 text-blue-400 shrink-0" />
-                  <a href="tel:+251911223344" className="hover:text-blue-400 transition-colors">
-                    +251 9xx / +251 xx
+                  <a href="tel:+25947788899" className="hover:text-blue-400 transition-colors">
+                    +251947788899
+                  </a>
+                  <a href="tel:+251947628899" className="hover:text-blue-400 transition-colors">
+                    +251947628899
                   </a>
                 </li>
                 <li className="flex items-center gap-2.5">
@@ -372,8 +375,8 @@ export default function Home() {
                 Follow our official social channels for announcements and news:
               </p>
               <div className="flex items-center gap-3 pt-1">
-             <a
-                  href="https://tiktok.com"
+                <a
+                  href="tiktok.com/@logosofficial12"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all"
@@ -390,7 +393,7 @@ export default function Home() {
                 >
                   <InstagramIcon className="h-4 w-4" />
                 </a>
-           
+
                 <a
                   href="https://linkedin.com"
                   target="_blank"
@@ -400,7 +403,7 @@ export default function Home() {
                 >
                   <LinkedinIcon className="h-4 w-4" />
                 </a>
-            
+
                 <a
                   href="https://t.me"
                   target="_blank"
