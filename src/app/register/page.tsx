@@ -20,10 +20,11 @@ import {
   Lock,
   ArrowRight,
   ShieldCheck,
-  UserPlus,
   Eye,
   EyeOff,
   ChevronDown,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 
 import { registerStudent } from "../../services/authservices";
@@ -82,7 +83,6 @@ export default function RegisterPage() {
       [name]: value,
     });
 
-    // Clear field error when user starts typing
     if (fieldErrors[name]) {
       setFieldErrors((prev) => {
         const newErrors = { ...prev };
@@ -91,7 +91,6 @@ export default function RegisterPage() {
       });
     }
 
-    // Update password strength when password changes
     if (name === "password") {
       setPasswordStrength(checkPasswordStrength(value));
     }
@@ -103,13 +102,11 @@ export default function RegisterPage() {
     setSuccess("");
     setFieldErrors({});
 
-    // Validate required fields
     if (!form.first_name || !form.last_name || !form.date_of_birth || !form.email || !form.phone || !form.password) {
       setError("Please fill in all required fields.");
       return;
     }
 
-    // Validate raw phone input (without country code)
     const phoneDigits = form.phone.replace(/\D/g, "");
     if (phoneDigits.length < 7) {
       setFieldErrors({ phone: "Phone number must be at least 7 digits" });
@@ -122,10 +119,8 @@ export default function RegisterPage() {
       return;
     }
 
-    // Normalize phone with country code
     const normalizedPhone = `${form.countryCode}${phoneDigits}`;
 
-    // Validate with Zod schema
     const validationResult = registerSchema.safeParse({
       email: form.email.trim(),
       phone: normalizedPhone,
@@ -181,7 +176,6 @@ export default function RegisterPage() {
       } else if (errorMessage.includes("API returned")) {
         setError("Unable to connect to server. Please try again later.");
       } else if (errorMessage.includes("phone:") || errorMessage.includes("password:") || errorMessage.includes("email:")) {
-        // Parse field-specific errors from backend
         const fieldErrors: Record<string, string> = {};
         const errorParts = errorMessage.split(', ');
         errorParts.forEach((part) => {
@@ -201,53 +195,61 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 selection:bg-blue-400 selection:text-white overflow-hidden">
       <div className="relative flex items-center justify-center p-6 pt-20 lg:pt-12 sm:p-12">
-        {/* Background Ambient Glow */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-gradient-to-tr from-blue-500/10 via-transparent to-indigo-500/10 blur-3xl" />
+        {/* Animated Background Blobs */}
+        <div className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-blue-400/15 dark:bg-blue-400/10 blur-[130px] rounded-full animate-pulse" />
+        <div className="pointer-events-none absolute top-1/3 left-10 w-[300px] h-[300px] bg-indigo-400/10 dark:bg-indigo-400/5 blur-[100px] rounded-full animate-bounce" style={{ animationDuration: '8s' }} />
+        <div className="pointer-events-none absolute bottom-1/4 right-10 w-[400px] h-[400px] bg-blue-500/10 dark:bg-blue-500/5 blur-[120px] rounded-full animate-bounce" style={{ animationDuration: '10s', animationDelay: '2s' }} />
 
-        <div className="relative w-full max-w-lg space-y-6">
+        <div className="relative w-full max-w-lg space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* Header & Logo */}
-          <div className="flex flex-col items-center space-y-2 text-center">
-            <div className="mb-2 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-lg shadow-blue-500/10 border border-slate-100 dark:border-slate-800 dark:bg-slate-900">
-              <Image src={logo} alt="Logo" width={64} height={64} className="object-contain" priority />
+          <div className="flex flex-col items-center space-y-3 text-center">
+            <div className="mb-2 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-white p-2 shadow-xl shadow-blue-400/20 border border-slate-100 dark:border-slate-800 dark:bg-slate-900 group hover:scale-105 transition-transform duration-300">
+              <Image src={logo} alt="Logo" width={80} height={80} className="object-contain" priority />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-              Create Student Account
+            
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-400/10 border border-blue-400/20">
+              <Sparkles className="h-4 w-4 text-blue-400" />
+              <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">New Student</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-slate-50">
+              Create Your Account
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Register to start your academic application
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+              Register your credentials to start your academic application process.
             </p>
 
             {error && (
-              <div className="w-full rounded-lg bg-rose-50 p-3 text-sm font-medium text-rose-600 border border-rose-200/60 dark:bg-rose-950/30 dark:border-rose-900 dark:text-rose-400">
+              <div className="w-full rounded-2xl bg-rose-50 p-3.5 text-sm font-medium text-rose-600 border border-rose-200/60 dark:bg-rose-950/30 dark:border-rose-900 dark:text-rose-400 animate-in fade-in slide-in-from-top-2 duration-300">
                 {error}
               </div>
             )}
 
             {success && (
-              <div className="w-full rounded-lg bg-emerald-50 p-3 text-sm font-medium text-emerald-600 border border-emerald-200/60 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-400">
+              <div className="w-full rounded-2xl bg-emerald-50 p-3.5 text-sm font-medium text-emerald-600 border border-emerald-200/60 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-400 animate-in fade-in slide-in-from-top-2 duration-300">
                 {success}
               </div>
             )}
           </div>
 
           {/* Card Component */}
-          <Card className="border-slate-200/80 bg-white/90 backdrop-blur-md shadow-xl dark:border-slate-800 dark:bg-slate-900/90">
-            <CardHeader className="space-y-1 pb-4">
-              <CardTitle className="text-xl font-semibold">Get started</CardTitle>
-              <CardDescription className="text-xs">
-                Fill in your personal and contact details below
+          <Card className="border-slate-200/80 bg-white/90 backdrop-blur-md shadow-2xl shadow-blue-400/10 dark:border-slate-800 dark:bg-slate-900/90 rounded-3xl overflow-hidden">
+            <CardHeader className="space-y-1 pb-6 pt-6">
+              <CardTitle className="text-2xl font-bold">Personal Details</CardTitle>
+              <CardDescription className="text-sm">
+                Fill in your legal information and account credentials
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-4">
-              <form className="space-y-4" onSubmit={handleSubmit}>
+            <CardContent className="space-y-5 px-6 pb-6">
+              <form className="space-y-5" onSubmit={handleSubmit}>
                 
                 {/* First and Last Name */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label htmlFor="first_name" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="first_name" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                       First Name
                     </label>
                     <Input 
@@ -257,12 +259,11 @@ export default function RegisterPage() {
                       onChange={handleChange} 
                       required 
                       placeholder="First name" 
-                                            className="h-10"
-
+                      className="h-11 rounded-xl focus-visible:ring-blue-400"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="last_name" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <div className="space-y-2">
+                    <label htmlFor="last_name" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                       Last Name
                     </label>
                     <Input 
@@ -272,16 +273,15 @@ export default function RegisterPage() {
                       onChange={handleChange} 
                       required 
                       placeholder="Last name" 
-                                            className="h-10"
-
+                      className="h-11 rounded-xl focus-visible:ring-blue-400"
                     />
                   </div>
                 </div>
 
                 {/* Gender and Date of Birth */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label htmlFor="gender" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="gender" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                       Gender
                     </label>
                     <select 
@@ -289,14 +289,14 @@ export default function RegisterPage() {
                       name="gender" 
                       value={form.gender} 
                       onChange={handleChange} 
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="MALE">Male</option>
                       <option value="FEMALE">Female</option>
                     </select>
                   </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="date_of_birth" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <div className="space-y-2">
+                    <label htmlFor="date_of_birth" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                       Date of Birth
                     </label>
                     <Input 
@@ -306,14 +306,14 @@ export default function RegisterPage() {
                       value={form.date_of_birth} 
                       onChange={handleChange} 
                       required 
-                      className="h-10"
+                      className="h-11 rounded-xl focus-visible:ring-blue-400"
                     />
                   </div>
                 </div>
 
                 {/* Email Field */}
-                <div className="space-y-1.5">
-                  <label htmlFor="email" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Email Address
                   </label>
                   <div className="relative flex items-center">
@@ -326,17 +326,17 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="you@example.com"
                       required
-                      className={`pl-10 h-10 ${fieldErrors.email ? "border-red-500" : ""}`}
+                      className={`pl-10 h-11 rounded-xl focus-visible:ring-blue-400 ${fieldErrors.email ? "border-red-500" : ""}`}
                     />
                   </div>
                   {fieldErrors.email && (
-                    <p className="text-xs text-red-500">{fieldErrors.email}</p>
+                    <p className="text-xs text-red-500 font-medium">{fieldErrors.email}</p>
                   )}
                 </div>
 
                 {/* Phone Field */}
-                <div className="space-y-1.5">
-                  <label htmlFor="phone" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="space-y-2">
+                  <label htmlFor="phone" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Phone Number
                   </label>
                   <div className="relative flex items-center w-full">
@@ -345,20 +345,20 @@ export default function RegisterPage() {
                       <button
                         type="button"
                         onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                        className="flex items-center gap-1.5 px-3 h-10 border border-r-0 border-input rounded-l-md bg-background hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        className="flex items-center gap-1.5 px-3 h-11 border border-r-0 border-input rounded-l-xl bg-background hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                       >
                         <span className="text-sm">
                           {countryCodes.find((c) => c.dialCode === form.countryCode)?.flag || "🇪🇹"}
                         </span>
-                        <span className="text-xs text-slate-600 dark:text-slate-400">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                           {form.countryCode}
                         </span>
-                        <ChevronDown className="h-3 w-3 text-slate-400" />
+                        <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                       </button>
                       
                       {/* Country Dropdown */}
                       {showCountryDropdown && (
-                        <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                        <div className="absolute top-full left-0 mt-1 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto p-1 animate-in fade-in slide-in-from-top-2 duration-200">
                           {countryCodes.map((country) => (
                             <button
                               key={country.code}
@@ -367,10 +367,10 @@ export default function RegisterPage() {
                                 setForm({ ...form, countryCode: country.dialCode });
                                 setShowCountryDropdown(false);
                               }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded-xl"
                             >
                               <span>{country.flag}</span>
-                              <span className="text-slate-700 dark:text-slate-300">{country.name}</span>
+                              <span className="text-slate-700 dark:text-slate-300 font-medium">{country.name}</span>
                               <span className="ml-auto text-xs text-slate-500">{country.dialCode}</span>
                             </button>
                           ))}
@@ -388,21 +388,21 @@ export default function RegisterPage() {
                         onChange={handleChange}
                         placeholder="912345678"
                         required
-                        className={`pl-10 h-10 rounded-l-none rounded-r-md ${fieldErrors.phone ? "border-red-500" : ""}`}
+                        className={`h-11 rounded-r-xl rounded-l-none border-l-0 focus-visible:ring-blue-400 ${fieldErrors.phone ? "border-red-500" : ""}`}
                       />
                     </div>
                   </div>
                   {fieldErrors.phone && (
-                    <p className="text-xs text-red-500">{fieldErrors.phone}</p>
+                    <p className="text-xs text-red-500 font-medium">{fieldErrors.phone}</p>
                   )}
-                  <p className="text-[10px] text-slate-400">
-                    Enter phone number without country code
+                  <p className="text-[11px] text-slate-400">
+                    Enter phone number without leading zeros
                   </p>
                 </div>
 
                 {/* Password Field */}
-                <div className="space-y-1.5">
-                  <label htmlFor="password" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Password
                   </label>
                   <div className="relative flex items-center">
@@ -415,38 +415,39 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="At least 8 characters"
                       required
-                      className={`pl-10 pr-10 h-10 ${fieldErrors.password ? "border-red-500" : ""}`}
+                      className={`pl-10 pr-10 h-11 rounded-xl focus-visible:ring-blue-400 ${fieldErrors.password ? "border-red-500" : ""}`}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-1 h-8 w-8 text-slate-400 hover:text-slate-600"
+                      className="absolute right-1.5 h-8 w-8 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                   {fieldErrors.password && (
-                    <p className="text-xs text-red-500">{fieldErrors.password}</p>
+                    <p className="text-xs text-red-500 font-medium">{fieldErrors.password}</p>
                   )}
+                  
                   {/* Password Strength Indicator */}
                   {form.password && (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 pt-1">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div
                             className={`h-full transition-all duration-300 ${passwordStrength.color}`}
                             style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-medium text-slate-600">
+                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
                           {passwordStrength.label}
                         </span>
                       </div>
                       {passwordStrength.feedback.length > 0 && (
-                        <p className="text-[10px] text-slate-400">
-                          Add: {passwordStrength.feedback.join(", ")}
+                        <p className="text-[11px] text-slate-400">
+                          Suggestion: Add {passwordStrength.feedback.join(", ")}
                         </p>
                       )}
                     </div>
@@ -454,8 +455,8 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Confirm Password Field */}
-                <div className="space-y-1.5">
-                  <label htmlFor="confirm_password" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <div className="space-y-2">
+                  <label htmlFor="confirm_password" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Confirm Password
                   </label>
                   <div className="relative flex items-center">
@@ -468,57 +469,67 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="Confirm password"
                       required
-                      className={`pl-10 pr-10 h-10 ${fieldErrors.confirm_password ? "border-red-500" : ""}`}
+                      className={`pl-10 pr-10 h-11 rounded-xl focus-visible:ring-blue-400 ${fieldErrors.confirm_password ? "border-red-500" : ""}`}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-1 h-10 w-8 text-slate-400 hover:text-slate-600"
+                      className="absolute right-1.5 h-8 w-8 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
                     >
                       {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                   {fieldErrors.confirm_password && (
-                    <p className="text-xs text-red-500">{fieldErrors.confirm_password}</p>
+                    <p className="text-xs text-red-500 font-medium">{fieldErrors.confirm_password}</p>
                   )}
                 </div>
 
-                {/* Submit Button */}
+                {/* Submit Action Button */}
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="mt-2 h-11 w-full bg-blue-400 font-medium text-white transition-all hover:bg-blue-500 active:scale-[0.99]"
+                  className="mt-2 h-12 w-full bg-blue-400 font-bold text-white transition-all hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-400/25 active:scale-[0.98] gap-2 rounded-xl"
                 >
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  {loading ? "Creating Account..." : "Create Account"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>
+                      Create Account
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </form>
 
               {/* Visual Divider */}
-              <div className="relative flex items-center justify-center py-1">
+              <div className="relative flex items-center justify-center py-2">
                 <div className="w-full border-t border-slate-200 dark:border-slate-800" />
-                <span className="absolute bg-white px-3 text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:bg-slate-900">
-                  Already registered?
+                <span className="absolute bg-white dark:bg-slate-900 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Already Registered?
                 </span>
               </div>
             </CardContent>
 
-            <CardFooter className="pt-0">
-              <Link
-                href="/login"
-                className="inline-flex h-11 w-full mt-2 items-center justify-center rounded-lg border border-slate-200 bg-transparent font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                Login to existing account
-                <ArrowRight className="ml-2 h-4 w-4" />
+            <CardFooter className="pt-0 px-6 pb-6">
+              <Link href="/login" className="w-full">
+                <Button
+                  variant="outline"
+                  className="h-12 w-full border-slate-200 font-bold hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 rounded-xl transition-all hover:scale-[1.02]"
+                >
+                  Sign In Instead
+                </Button>
               </Link>
             </CardFooter>
           </Card>
 
           {/* Security Badge */}
-          <div className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
-            <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
+          <div className="flex items-center justify-center gap-2 text-center text-xs text-slate-400 font-medium">
+            <ShieldCheck className="h-4 w-4 text-blue-400" />
             <span>Secure SSL Encrypted Connection</span>
           </div>
         </div>
