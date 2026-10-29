@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export function useScrollAnimation() {
-  const [isVisible, setIsVisible] = useState(false);
+export function useScrollAnimation(threshold = 0.1) {
   const ref = useRef<HTMLElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -14,10 +14,7 @@ export function useScrollAnimation() {
           observer.unobserve(entry.target);
         }
       },
-      {
-        threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px",
-      }
+      { threshold }
     );
 
     const currentRef = ref.current;
@@ -30,7 +27,7 @@ export function useScrollAnimation() {
         observer.unobserve(currentRef);
       }
     };
-  }, []);
+  }, [threshold]);
 
-  return [ref, isVisible] as const;
+  return { ref, isVisible };
 }

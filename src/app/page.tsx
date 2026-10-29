@@ -1,10 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import type { StaticImageData } from "next/image";
 import Link from "next/link";
 import Navbar from "../components/navbar";
+import Hero from "../components/hero";
 import FashionDesign from "../../public/assets/fashion.png";
 import Camera from "../../public/assets/camera.jpg";
 import MobileMaintenance from "../../public/assets/mobile.jpg";
+import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 interface Course {
   id: number;
@@ -32,9 +36,6 @@ import {
   MapPin,
   Mail,
   ArrowUpRight,
-  CheckCircle2,
-  ShieldCheck,
-  Star,
 } from "lucide-react";
 
 // Inline Social Icon SVGs
@@ -110,105 +111,39 @@ const features = [
   },
 ];
 
+function ScrollSection({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+  const { ref, isVisible } = useScrollAnimation(0.1);
+
+  return (
+    <section
+      ref={ref}
+      id={id}
+      className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'} ${className}`}
+    >
+      {children}
+    </section>
+  );
+}
+
 export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50 flex flex-col justify-between selection:bg-blue-400 selection:text-white">
       <div>
         <Navbar />
-
-        {/* Hero Section */}
-        <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden">
-          {/* Animated Background Blobs */}
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-blue-400/15 dark:bg-blue-400/10 blur-[130px] rounded-full pointer-events-none -z-10 animate-pulse" />
-          <div className="absolute top-1/3 left-10 w-[300px] h-[300px] bg-indigo-400/10 dark:bg-indigo-400/5 blur-[100px] rounded-full pointer-events-none -z-10 animate-bounce" style={{ animationDuration: '8s' }} />
-          <div className="absolute bottom-1/4 right-10 w-[400px] h-[400px] bg-blue-500/10 dark:bg-blue-500/5 blur-[120px] rounded-full pointer-events-none -z-10 animate-bounce" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-
-          <div className="mx-auto max-w-6xl px-5 text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            {/* Top Pill */}
-            <div className="inline-flex items-center">
-              <Badge variant="outline" className="px-4 py-1.5 border-blue-400/40 text-blue-500 dark:text-blue-400 bg-blue-400/10 font-semibold gap-2 text-xs sm:text-sm rounded-full shadow-sm">
-                <Sparkles className="h-4 w-4 text-blue-400" /> Practical Vocational Education
-              </Badge>
-            </div>
-
-            {/* Main Headline */}
-            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight max-w-4xl mx-auto leading-[1.1] text-slate-950 dark:text-white">
-              Master Practical Skills for <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent">Real-World Success</span>
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed font-normal">
-              Logos College provides practical certificate programs designed to turn your interests into job-ready technical skills and career confidence.
-            </p>
-
-            {/* Call To Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-              <Link
-                href="/register"
-                className={buttonVariants({
-                  size: "lg",
-                  className: "w-full sm:w-auto font-bold gap-2 text-base px-8 h-12 shadow-lg shadow-blue-400/25 !bg-blue-400 hover:!bg-blue-500 text-white border-none rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-400/30 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-200",
-                })}
-              >
-                Enroll Online Now
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-              <Link
-                href="#programs"
-                className={buttonVariants({
-                  variant: "outline",
-                  size: "lg",
-                  className: "w-full sm:w-auto font-bold text-base px-8 h-12 border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl transition-all animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300",
-                })}
-              >
-                Explore Programs
-              </Link>
-            </div>
-
-            {/* Highlight Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-blue-400" /> Hands-on Labs
-              </span>
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4 text-blue-400" /> Career Clearance
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Star className="h-4 w-4 text-blue-400" /> Certified Programs
-              </span>
-            </div>
-
-            {/* Stats Summary Box */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 pt-8 sm:pt-10 mt-6 sm:mt-8 max-w-4xl mx-auto border-t border-slate-200/80 dark:border-slate-800">
-              <div className="group p-3 sm:p-4 rounded-2xl bg-white/60 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800/60 backdrop-blur-xs transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-400/10 animate-in fade-in slide-in-from-bottom-3 duration-700 delay-400">
-                <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-blue-400 group-hover:scale-110 transition-transform">100%</p>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Practical Workshops</p>
-              </div>
-              <div className="group p-3 sm:p-4 rounded-2xl bg-white/60 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800/60 backdrop-blur-xs transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-400/10 animate-in fade-in slide-in-from-bottom-3 duration-700 delay-500">
-                <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-blue-400 group-hover:scale-110 transition-transform">Flexible</p>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Schedules & Shifts</p>
-              </div>
-              <div className="col-span-2 md:col-span-1 group p-3 sm:p-4 rounded-2xl bg-white/60 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800/60 backdrop-blur-xs transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-400/10 animate-in fade-in slide-in-from-bottom-3 duration-700 delay-600">
-                <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-blue-400 group-hover:scale-110 transition-transform">Accredited</p>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Certificate Options</p>
-              </div>
-            </div>
-          </div>
-        </section>
+        <Hero />
 
         {/* Why Choose Us Section */}
-        <section className="px-5 py-16 sm:py-20 bg-slate-100/70 dark:bg-slate-900/40 border-y border-slate-200/80 dark:border-slate-800/80">
+        <ScrollSection className="px-5 py-16 sm:py-20 bg-slate-100/70 dark:bg-slate-900/40 border-y border-slate-200/80 dark:border-slate-800/80">
           <div className="mx-auto max-w-6xl">
             <div className="text-center space-y-2 mb-12">
-              <p className="text-xs font-bold uppercase tracking-widest text-blue-400 animate-in fade-in slide-in-from-bottom-2 duration-700">Why Logos College</p>
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 dark:text-white animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">Built for hands-on learners</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Why Logos College</p>
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 dark:text-white">Built for hands-on learners</h2>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
-              {features.map((feat, index) => {
+              {features.map((feat) => {
                 const IconComponent = feat.icon;
-                const delays = [0, 100, 200];
                 return (
-                  <div key={feat.title} style={{ animationDelay: `${delays[index]}ms` }} className="group relative flex flex-col items-center text-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-blue-400/50 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div key={feat.title} className="group relative flex flex-col items-center text-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-blue-400/50">
                     <div className="h-14 w-14 rounded-2xl bg-blue-400/10 text-blue-400 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-blue-400 group-hover:text-white transition-all duration-300">
                       <IconComponent className="h-7 w-7" />
                     </div>
@@ -219,20 +154,20 @@ export default function Home() {
               })}
             </div>
           </div>
-        </section>
+        </ScrollSection>
 
         {/* Image-Covered Touchable Programs Section */}
-        <section id="programs" className="px-5 py-20 sm:py-24">
+        <ScrollSection id="programs" className="px-5 py-20 sm:py-24">
           <div className="mx-auto max-w-6xl space-y-12">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-blue-400 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                <p className="text-xs font-bold uppercase tracking-widest text-blue-400">
                   Learn by doing
                 </p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
+                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
                   Featured Programs
                 </h2>
-                <p className="mt-2 max-w-xl text-slate-600 dark:text-slate-400 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-200">
+                <p className="mt-2 max-w-xl text-slate-600 dark:text-slate-400">
                   Tap any card below to explore and start your online registration.
                 </p>
               </div>
@@ -240,7 +175,7 @@ export default function Home() {
                 href="/register"
                 className={buttonVariants({
                   variant: "link",
-                  className: "group p-0 font-bold text-blue-400 hover:text-blue-500 hover:no-underline text-sm animate-in fade-in slide-in-from-right-2 duration-700 delay-300"
+                  className: "group p-0 font-bold text-blue-400 hover:text-blue-500 hover:no-underline text-sm"
                 })}
               >
                 Browse all programs
@@ -249,10 +184,8 @@ export default function Home() {
             </div>
 
             <div className="grid gap-8 md:grid-cols-3">
-              {courses.map((course: Course, index: number) => {
-                const delays = [0, 150, 300];
-                return (
-                  <Link key={course.id} href={`/courses/${course.id}`} style={{ animationDelay: `${delays[index]}ms` }} className="group block focus:outline-none animate-in fade-in slide-in-from-bottom-4 duration-700">
+              {courses.map((course: Course) => (
+                <Link key={course.id} href={`/courses/${course.id}`} className="group block focus:outline-none">
                   <Card className="relative flex flex-col h-full overflow-hidden rounded-3xl border-border/60 bg-card shadow-md transition-all duration-500 hover:-translate-y-2 hover:border-blue-400/60 hover:shadow-2xl hover:shadow-blue-400/15 group-focus:ring-2 group-focus:ring-blue-400">
                     <div className="flex flex-col h-full justify-between">
                       {/* Image Container with Title & Badges */}
@@ -319,14 +252,13 @@ export default function Home() {
                     </div>
                   </Card>
                 </Link>
-                );
-              })}
+              ))}
             </div>
           </div>
-        </section>
+        </ScrollSection>
 
         {/* Banner Call-To-Action */}
-        <section className="px-5 pb-20 sm:pb-24">
+        <ScrollSection className="px-5 pb-20 sm:pb-24">
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:gap-8 overflow-hidden rounded-3xl bg-slate-900 dark:bg-slate-900/90 border border-slate-800 p-6 sm:p-8 md:p-12 text-white shadow-2xl sm:flex-row sm:items-center relative">
             <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
             <div className="max-w-2xl space-y-3 z-10">
@@ -351,7 +283,7 @@ export default function Home() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
-        </section>
+        </ScrollSection>
       </div>
 
       {/* Footer Section */}

@@ -1,16 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Source_Serif_4 } from "next/font/google";
 import {
-  ArrowDown, ArrowRight, ArrowUpRight, BadgeCheck, BookOpen, Code2,
-  ExternalLink, FolderKanban, Search, Sparkles, UserRound,
+  ArrowDown,
+  ArrowRight,
+  ArrowUpRight,
+  BadgeCheck,
+  BookOpen,
+  Check,
+  Code2,
+  FolderKanban,
+  Link2,
+  Search,
+  UserRound,
   X,
 } from "lucide-react";
 
 import icon from "../../../../public/icons/icon.png";
+
+const serif = Source_Serif_4({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+});
 
 interface Project {
   id: number;
@@ -64,36 +79,41 @@ export default function PublicPortfolioPage() {
   const [imgError, setImgError] = useState(false);
   const [query, setQuery] = useState("");
   const [activeTech, setActiveTech] = useState("All");
+  const [selected, setSelected] = useState<Project | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const loadPortfolio = useCallback(async (signal?: AbortSignal) => {
-    if (!slug) return;
-    setLoading(true);
-    setError("");
-    try {
-      const response = await fetch(
-        `${API_URL}/portfolios/public/${encodeURIComponent(slug)}`,
-        { signal, cache: "no-store" }
-      );
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(
-          response.status === 404
-            ? "This portfolio does not exist or has not been published yet."
-            : data.message || data.error || "We couldn't load this portfolio. Please try again."
-        );
+  const loadPortfolio = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!slug) return;
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch(`${API_URL}/portfolios/public/${encodeURIComponent(slug)}`, {
+          signal,
+          cache: "no-store",
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(
+            response.status === 404
+              ? "This portfolio does not exist or has not been published yet."
+              : data.message || data.error || "We couldn’t load this portfolio. Please try again."
+          );
+        }
+        const result: Portfolio = data.portfolio ?? data;
+        result.projects = data.projects ?? result.projects ?? [];
+        setPortfolio(result);
+        setImgError(false);
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        setPortfolio(null);
+      } finally {
+        if (!signal?.aborted) setLoading(false);
       }
-      const result: Portfolio = data.portfolio ?? data;
-      result.projects = data.projects ?? result.projects ?? [];
-      setPortfolio(result);
-      setImgError(false);
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-      setPortfolio(null);
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  }, [slug]);
+    },
+    [slug]
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -102,10 +122,20 @@ export default function PublicPortfolioPage() {
   }, [loadPortfolio]);
 
   const projects = useMemo(() => portfolio?.projects ?? [], [portfolio?.projects]);
-  const technologies = useMemo(
-    () => Array.from(new Set(projects.flatMap((project) => getTechnologies(project.technologies)))).sort(),
-    [projects]
-  );
+
+  // Technologies sorted by how many projects use them
+  const technologies = useMemo(() => {
+    const counts = new Map<string, number>();
+    projects.forEach((project) => {
+      new Set(getTechnologies(project.technologies)).forEach((tech) => {
+        counts.set(tech, (counts.get(tech) || 0) + 1);
+      });
+    });
+    return Array.from(counts, ([name, count]) => ({ name, count })).sort(
+      (a, b) => b.count - a.count || a.name.localeCompare(b.name)
+    );
+  }, [projects]);
+
   const filteredProjects = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return projects.filter((project) => {
@@ -115,111 +145,593 @@ export default function PublicPortfolioPage() {
     });
   }, [projects, query, activeTech]);
 
+  const closeModal = useCallback(() => setSelected(null), []);
+
+  const copyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard can be blocked; fail silently
+    }
+  }, []);
+
+  const resetFilters = () => {
+    setQuery("");
+    setActiveTech("All");
+  };
+
+  /* ---------------------------------- Loading ---------------------------------- */
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f7f9fc] px-5 py-8 text-slate-900 dark:bg-slate-950 dark:text-white sm:px-8">
-        <div className="mx-auto max-w-6xl animate-pulse">
-          <div className="mb-10 flex items-center gap-3"><div className="h-11 w-11 rounded-2xl bg-slate-200 dark:bg-slate-800" /><div className="space-y-2"><div className="h-3 w-28 rounded bg-slate-200 dark:bg-slate-800" /><div className="h-3 w-40 rounded bg-slate-200 dark:bg-slate-800" /></div></div>
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-12"><div className="flex flex-col gap-7 sm:flex-row sm:items-center"><div className="h-28 w-28 rounded-[2rem] bg-slate-200 dark:bg-slate-800" /><div className="flex-1 space-y-4"><div className="h-4 w-32 rounded bg-slate-200 dark:bg-slate-800" /><div className="h-9 w-2/3 rounded bg-slate-200 dark:bg-slate-800" /><div className="h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-800" /></div></div></div>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <div key={item} className="overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"><div className="h-44 bg-slate-200 dark:bg-slate-800" /><div className="space-y-3 p-6"><div className="h-4 w-2/3 rounded bg-slate-200 dark:bg-slate-800" /><div className="h-3 w-full rounded bg-slate-200 dark:bg-slate-800" /><div className="h-3 w-4/5 rounded bg-slate-200 dark:bg-slate-800" /></div></div>)}</div>
+      <main className="min-h-screen bg-slate-50 dark:bg-[#080f1e]">
+        <div className="animate-pulse">
+          <div className="bg-[#06142e] px-5 py-16 sm:px-8 sm:py-24">
+            <div className="mx-auto flex max-w-6xl flex-col gap-8 sm:flex-row sm:items-center">
+              <div className="h-36 w-36 rounded-3xl bg-white/10 sm:h-44 sm:w-44" />
+              <div className="flex-1 space-y-4">
+                <div className="h-5 w-40 rounded bg-white/10" />
+                <div className="h-12 w-2/3 rounded bg-white/10" />
+                <div className="h-4 w-1/2 rounded bg-white/10" />
+              </div>
+            </div>
+          </div>
+          <div className="mx-auto mt-12 grid max-w-6xl gap-5 px-5 sm:grid-cols-2 sm:px-8 lg:grid-cols-3">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#0d1729]"
+              >
+                <div className="aspect-[16/10] bg-slate-200 dark:bg-slate-800" />
+                <div className="space-y-3 p-5">
+                  <div className="h-4 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-3 w-full rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-3 w-4/5 rounded bg-slate-200 dark:bg-slate-800" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </main>
     );
   }
 
+  /* ----------------------------------- Error ----------------------------------- */
   if (error || !portfolio) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f7f9fc] px-5 py-12 text-slate-900 dark:bg-slate-950 dark:text-white">
-        <div className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900 sm:p-12">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300"><FolderKanban className="h-7 w-7" /></div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-blue-600 dark:text-blue-300">Logos College</p>
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-5 py-12 text-slate-900 dark:bg-[#080f1e] dark:text-white">
+        <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-[#0d1729] sm:p-12">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+            <FolderKanban className="h-7 w-7" />
+          </div>
           <h1 className="text-2xl font-bold tracking-tight">Portfolio unavailable</h1>
-          <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">{error || "We couldn't find this student portfolio."}</p>
-          <button onClick={() => void loadPortfolio()} className="mt-7 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-400 px-5 text-sm font-bold text-slate-950 shadow-lg shadow-blue-400/25 transition hover:bg-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/25">Try again <ArrowRight className="h-4 w-4" /></button>
-          <div><Link href="/" className="mt-4 inline-block text-sm font-medium text-slate-500 underline-offset-4 hover:text-blue-500 hover:underline dark:text-slate-400">Back to home</Link></div>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+            {error || "We couldn’t find this student portfolio."}
+          </p>
+          <button
+            onClick={() => void loadPortfolio()}
+            className="mt-7 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30"
+          >
+            Try again <ArrowRight className="h-4 w-4" />
+          </button>
+          <div>
+            <Link
+              href="/"
+              className="mt-4 inline-block text-sm font-medium text-slate-500 underline-offset-4 hover:text-blue-600 hover:underline dark:text-slate-400"
+            >
+              Back to home
+            </Link>
+          </div>
         </div>
       </main>
     );
   }
 
-  const studentName = portfolio.full_name || `${portfolio.first_name || ""} ${portfolio.last_name || ""}`.trim() || "Logos College Student";
+  const studentName =
+    portfolio.full_name ||
+    `${portfolio.first_name || ""} ${portfolio.last_name || ""}`.trim() ||
+    "Logos College Student";
   const biography = portfolio.bio_override || portfolio.bio || "";
-  const initials = studentName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  const initials = studentName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+  const hasSidebar = Boolean(biography) || technologies.length > 0;
+  const filtersActive = query.trim() !== "" || activeTech !== "All";
+  const showFeatured = !filtersActive && filteredProjects.length > 1;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f7f9fc] text-slate-900 selection:bg-blue-200 selection:text-blue-950 dark:bg-[#080f1e] dark:text-slate-100 dark:selection:bg-blue-900 dark:selection:text-white">
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl dark:border-white/10 dark:bg-[#080f1e]/85">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 sm:px-8 lg:px-10">
-          <Link href="/" className="group flex items-center gap-3 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/20" aria-label="Logos College home">
-            <span className="flex h-14 w-14 items-center justify-center rounded-[0.9rem] bg-white text-white shadow-lg shadow-blue-700/20 transition-transform group-hover:-rotate-3"><Image src={icon} alt="Logos College icon" className="h-5 w-5" /></span>
-            <span className="leading-tight"><span className="block text-sm font-extrabold tracking-tight">Logos <span className="text-blue-600 dark:text-blue-300">College</span></span><span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Student showcase</span></span>
+    <main className="min-h-screen bg-slate-50 text-slate-900 selection:bg-blue-200 selection:text-blue-950 dark:bg-[#080f1e] dark:text-slate-100 dark:selection:bg-blue-800 dark:selection:text-white">
+      {/* ------------------------------- Header ------------------------------- */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#06142e]/85 text-white backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
+          <Link
+            href="/"
+            className="flex items-center gap-3 rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30"
+            aria-label="Logos College home"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white p-1.5">
+              <Image src={icon} alt="" width={24} height={24} className="object-contain" />
+            </span>
+            <span className="leading-tight">
+              <span className="block text-sm font-bold">Logos College</span>
+              <span className="block text-[11px] text-slate-400">Student showcase</span>
+            </span>
           </Link>
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"><BadgeCheck className="h-3.5 w-3.5" /> Public portfolio</div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+            <BadgeCheck className="h-3.5 w-3.5" /> Public portfolio
+          </span>
         </div>
       </header>
 
-      <section className="relative isolate border-b border-slate-200/80 dark:border-white/10">
-        <div className="absolute inset-0 -z-20 bg-white dark:bg-[#0b1426]" />
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,rgba(59,130,246,0.14),transparent_42%),radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.10),transparent_42%)]" />
-        <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16 lg:px-10 lg:py-20">
-          <div className="grid items-center gap-9 lg:grid-cols-[1fr_auto] lg:gap-14">
-            <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:gap-8">
-              {portfolio.profile_photo_url && !imgError ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={portfolio.profile_photo_url} alt={`${studentName} profile`} onError={() => setImgError(true)} className="h-28 w-28 shrink-0 rounded-[2rem] border-4 border-white object-cover shadow-xl shadow-blue-950/10 ring-1 ring-slate-200 dark:border-slate-800 dark:ring-white/10 sm:h-36 sm:w-36" />
-              ) : (
-                <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-[2rem] bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-500 text-3xl font-black tracking-tight text-white shadow-xl shadow-blue-900/20 ring-4 ring-white dark:ring-slate-800 sm:h-36 sm:w-36 sm:text-4xl"><span>{initials || <UserRound className="h-12 w-12" />}</span></div>
+      {/* --------------------------------- Hero -------------------------------- */}
+      <section className="relative isolate overflow-hidden bg-[#06142e] text-white">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,rgba(37,99,235,0.35),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(79,70,229,0.2),transparent_50%)]" />
+        <div className="absolute inset-0 -z-10 opacity-60 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
+
+        <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-20 lg:py-24">
+          <div className="flex flex-col items-start gap-8 sm:flex-row sm:items-center sm:gap-10">
+            {portfolio.profile_photo_url && !imgError ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={portfolio.profile_photo_url}
+                alt={`${studentName} profile`}
+                onError={() => setImgError(true)}
+                className="h-36 w-36 shrink-0 rounded-3xl object-cover shadow-2xl shadow-black/40 ring-4 ring-white/10 sm:h-44 sm:w-44"
+              />
+            ) : (
+              <div className="flex h-36 w-36 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 text-4xl font-bold text-white shadow-2xl shadow-black/40 ring-4 ring-white/10 sm:h-44 sm:w-44 sm:text-5xl">
+                {initials || <UserRound className="h-14 w-14" />}
+              </div>
+            )}
+
+            <div className="min-w-0">
+              <h1
+                className={`${serif.className} break-words text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl`}
+              >
+                {studentName}
+              </h1>
+              <p className="mt-3 max-w-2xl text-lg text-slate-300 sm:text-xl">
+                {portfolio.title || "Student Portfolio"}
+              </p>
+
+              {portfolio.program_name && (
+                <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-slate-200 ring-1 ring-white/10">
+                  <BookOpen className="h-4 w-4 text-blue-300" />
+                  {portfolio.program_name}
+                </p>
               )}
-              <div className="min-w-0">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200"><Sparkles className="h-3.5 w-3.5" /> Student spotlight</div>
-                <h1 className="max-w-3xl break-words text-3xl font-black leading-tight tracking-[-0.04em] sm:text-4xl lg:text-5xl">{studentName}</h1>
-                <p className="mt-3 max-w-2xl text-base font-medium leading-7 text-slate-600 dark:text-slate-300 sm:text-lg">{portfolio.title || "Student Portfolio"}</p>
-                {portfolio.program_name && <div className="mt-5 inline-flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white/80 px-3.5 py-2.5 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-300"><BookOpen className="h-4 w-4 text-blue-600 dark:text-blue-300" /><span>Program</span><span className="font-bold text-slate-900 dark:text-white">{portfolio.program_name}</span></div>}
+
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <a
+                  href="#projects"
+                  className="group inline-flex h-12 items-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/40"
+                >
+                  View projects
+                  <ArrowDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => void copyLink()}
+                  className="inline-flex h-12 items-center gap-2 rounded-full bg-white/5 px-6 text-sm font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/40"
+                >
+                  {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Link2 className="h-4 w-4" />}
+                  {copied ? "Link copied" : "Copy link"}
+                </button>
               </div>
             </div>
-            <a href="#projects" className="group inline-flex min-h-12 w-fit items-center justify-center gap-2.5 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition hover:-translate-y-0.5 hover:bg-blue-400 hover:text-slate-950 focus:outline-none focus:ring-4 focus:ring-blue-500/25 dark:bg-white dark:text-slate-950 dark:hover:bg-blue-200"><FolderKanban className="h-4 w-4" /> Explore projects <ArrowDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" /></a>
           </div>
-          <div className="mt-10 grid max-w-xl grid-cols-2 gap-3 sm:mt-12">
-            <div className="rounded-2xl border border-slate-200/90 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.035] sm:p-5"><p className="text-2xl font-black tracking-tight">{projects.length}</p><p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">Projects showcased</p></div>
-            <div className="rounded-2xl border border-slate-200/90 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.035] sm:p-5"><p className="text-2xl font-black tracking-tight">{technologies.length}</p><p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">Technologies used</p></div>
-          </div>
+
+          <dl className="mt-12 grid max-w-md grid-cols-2 divide-x divide-white/10 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur">
+            <div className="px-6 py-4">
+              <dt className="text-xs text-slate-400">Projects</dt>
+              <dd className="mt-1 text-2xl font-bold">{projects.length}</dd>
+            </div>
+            <div className="px-6 py-4">
+              <dt className="text-xs text-slate-400">Technologies</dt>
+              <dd className="mt-1 text-2xl font-bold">{technologies.length}</dd>
+            </div>
+          </dl>
         </div>
       </section>
 
-      {biography && <section className="mx-auto max-w-7xl px-5 pt-10 sm:px-8 sm:pt-14 lg:px-10"><div className="grid gap-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-900/[0.025] dark:border-white/10 dark:bg-white/[0.035] sm:grid-cols-[auto_1fr] sm:gap-6 sm:p-8"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300"><UserRound className="h-5 w-5" /></div><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">A little introduction</p><h2 className="mt-2 text-xl font-bold tracking-tight sm:text-2xl">About me</h2><p className="mt-3 max-w-4xl whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">{biography}</p></div></div></section>}
+      {/* ------------------------------ Main content ------------------------------ */}
+      <div
+        className={`mx-auto max-w-6xl gap-10 px-5 py-12 sm:px-8 sm:py-16 ${
+          hasSidebar ? "lg:grid lg:grid-cols-[18rem_1fr] lg:items-start" : ""
+        }`}
+      >
+        {/* Sidebar */}
+        {hasSidebar && (
+          <aside className="mb-10 space-y-5 lg:sticky lg:top-24 lg:mb-0">
+            {biography && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-[#0d1729]">
+                <h2 className="text-base font-bold">About</h2>
+                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300">
+                  {biography}
+                </p>
+              </section>
+            )}
 
-      <section id="projects" className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20 lg:px-10">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div><p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300"><Code2 className="h-4 w-4" /> Selected work</p><h2 className="mt-3 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Projects &amp; creations<span className="text-blue-600 dark:text-blue-300">.</span></h2><p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400 sm:text-base">A closer look at projects, ideas, and the technologies behind them.</p></div>
-          {projects.length > 0 && <div className="w-full lg:max-w-sm"><label htmlFor="project-search" className="mb-2 block text-xs font-semibold text-slate-600 dark:text-slate-300">Find a project</label><div className="relative"><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input id="project-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, description, tech..." className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white" />{query && <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10"><X className="h-4 w-4" /></button>}</div></div>}
-        </div>
-
-        {technologies.length > 0 && <div className="mt-7 flex flex-wrap gap-2" aria-label="Filter projects by technology"><button type="button" onClick={() => setActiveTech("All")} aria-pressed={activeTech === "All"} className={`rounded-full px-4 py-2 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-500/20 ${activeTech === "All" ? "bg-blue-400 text-slate-950 shadow-md shadow-blue-400/25" : "border border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:text-blue-300"}`}>All projects <span className="ml-1 opacity-70">{projects.length}</span></button>{technologies.map((tech) => <button key={tech} type="button" onClick={() => setActiveTech(tech)} aria-pressed={activeTech === tech} className={`rounded-full px-4 py-2 text-xs font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-500/20 ${activeTech === tech ? "bg-blue-400 text-slate-950 shadow-md shadow-blue-400/25" : "border border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:text-blue-300"}`}>{tech}</button>)}</div>}
-
-        {projects.length === 0 ? (
-          <div className="mt-9 rounded-3xl border border-dashed border-slate-300 bg-white/70 px-6 py-16 text-center dark:border-white/15 dark:bg-white/[0.025]"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300"><Code2 className="h-6 w-6" /></div><h3 className="mt-5 text-lg font-bold">The next great project starts here</h3><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">Projects will appear here when this student adds them to their portfolio.</p></div>
-        ) : filteredProjects.length === 0 ? (
-          <div className="mt-9 rounded-3xl border border-slate-200 bg-white px-6 py-14 text-center dark:border-white/10 dark:bg-white/[0.025]"><Search className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-4 font-bold">No matching projects</h3><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Try another search or choose a different technology.</p><button type="button" onClick={() => { setQuery(""); setActiveTech("All"); }} className="mt-5 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:border-blue-400 hover:text-blue-500 dark:border-white/10 dark:hover:text-blue-300">Clear filters</button></div>
-        ) : (
-          <><div className="mb-5 mt-8 flex items-center justify-between"><p className="text-sm text-slate-500 dark:text-slate-400">Showing <span className="font-bold text-slate-900 dark:text-white">{filteredProjects.length}</span> of {projects.length} projects</p>{(query || activeTech !== "All") && <button type="button" onClick={() => { setQuery(""); setActiveTech("All"); }} className="text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300">Reset filters</button>}</div><div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3">{filteredProjects.map((project) => {
-            const projectTech = getTechnologies(project.technologies);
-            const validProjectUrl = isExternalUrl(project.project_url) ? project.project_url : null;
-            return <article key={project.id} className="group flex min-w-0 flex-col overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-sm shadow-slate-900/[0.025] transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-950/[0.07] dark:border-white/10 dark:bg-[#0d1729] dark:hover:border-blue-400/30 dark:hover:shadow-black/20">
-              <div className="relative h-64 overflow-hidden border-b border-slate-100 bg-gradient-to-br from-slate-50 via-blue-50/70 to-indigo-50/70 dark:border-white/5 dark:from-slate-900 dark:via-blue-950/40 dark:to-indigo-950/30 sm:h-72">{project.image_url ? <ProjectImage src={project.image_url} title={project.title} /> : <div className="flex h-full items-center justify-center"><div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/80 bg-white/70 text-blue-700 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-blue-300"><Code2 className="h-7 w-7" /></div></div>}<span className="absolute left-4 top-4 rounded-lg border border-white/70 bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/75 dark:text-slate-300">Project</span></div>
-              <div className="flex flex-1 flex-col p-5 sm:p-6"><h3 className="text-lg font-bold leading-snug tracking-tight transition-colors group-hover:text-blue-500 dark:group-hover:text-blue-300">{project.title}</h3><p className="mt-3 min-h-[4.5rem] whitespace-pre-line text-sm leading-6 text-slate-500 dark:text-slate-400">{project.description ? (project.description.length > 155 ? `${project.description.slice(0, 155).trimEnd()}…` : project.description) : "A project developed as part of this student's practical work."}</p>{projectTech.length > 0 && <div className="mt-4 flex flex-wrap gap-1.5">{projectTech.slice(0, 5).map((tech) => <span key={tech} className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700 dark:border-blue-400/15 dark:bg-blue-400/10 dark:text-blue-200">{tech}</span>)}{projectTech.length > 5 && <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-400">+{projectTech.length - 5}</span>}</div>}<div className="mt-auto pt-6">{validProjectUrl ? <a href={validProjectUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:bg-blue-400 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-500/20 dark:border-white/10 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:bg-blue-500 dark:hover:text-white">View live project <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></a> : <span className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-50 px-4 text-xs font-medium text-slate-400 dark:bg-white/[0.035] dark:text-slate-500">Live link not provided <ExternalLink className="h-3.5 w-3.5" /></span>}</div></div>
-            </article>;
-          })}</div></>
+            {technologies.length > 0 && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-[#0d1729]">
+                <h2 className="text-base font-bold">Technologies</h2>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Select one to filter the projects.</p>
+                <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filter projects by technology">
+                  {technologies.map(({ name, count }) => {
+                    const active = activeTech === name;
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setActiveTech(active ? "All" : name)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/25 ${
+                          active
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
+                            : "bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-700 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+                        }`}
+                      >
+                        {name}
+                        <span className={active ? "text-blue-100" : "text-slate-400"}>{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </aside>
         )}
-      </section>
 
-      <footer className="border-t border-slate-200 bg-white dark:border-white/10 dark:bg-[#080f1e]"><div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-7 text-center sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:text-left lg:px-10"><Link href="/" className="inline-flex items-center justify-center gap-2 text-sm font-bold tracking-tight text-slate-700 transition hover:text-blue-500 dark:text-slate-200 dark:hover:text-blue-300 sm:justify-start"><Image src={icon} alt="Logos College icon" className="h-4 w-4" /> Logos College</Link><p className="text-xs leading-5 text-slate-500 dark:text-slate-400">© {new Date().getFullYear()} Logos College · Student Portfolio Showcase</p><a href="#projects" className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-500 transition hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-300">Back to projects <ArrowRight className="h-3.5 w-3.5" /></a></div></footer>
+        {/* Projects */}
+        <section id="projects" className="min-w-0 scroll-mt-24">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className={`${serif.className} text-3xl font-bold tracking-tight sm:text-4xl`}>Projects</h2>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                {projects.length > 0
+                  ? `Showing ${filteredProjects.length} of ${projects.length}`
+                  : "Selected work by this student"}
+              </p>
+            </div>
+
+            {projects.length > 0 && (
+              <div className="relative w-full sm:max-w-xs">
+                <label htmlFor="project-search" className="sr-only">
+                  Search projects
+                </label>
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="project-search"
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search projects"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    aria-label="Clear search"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {activeTech !== "All" && (
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => setActiveTech("All")}
+                className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300"
+              >
+                Technology: {activeTech}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          {projects.length === 0 ? (
+            <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white/70 px-6 py-16 text-center dark:border-white/15 dark:bg-white/[0.025]">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                <Code2 className="h-6 w-6" />
+              </div>
+              <h3 className="mt-5 text-lg font-bold">No projects yet</h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Projects will appear here when this student adds them to their portfolio.
+              </p>
+            </div>
+          ) : filteredProjects.length === 0 ? (
+            <div className="mt-8 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center dark:border-white/10 dark:bg-white/[0.025]">
+              <Search className="mx-auto h-8 w-8 text-slate-400" />
+              <h3 className="mt-4 font-bold">No matching projects</h3>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                Try another search or choose a different technology.
+              </p>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-5 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold transition hover:border-blue-400 hover:text-blue-600 dark:border-white/10 dark:hover:text-blue-300"
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              {filteredProjects.map((project, index) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  featured={showFeatured && index === 0}
+                  onOpen={setSelected}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* --------------------------------- Footer -------------------------------- */}
+      <footer className="border-t border-slate-200 bg-white dark:border-white/10 dark:bg-[#06142e]">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-8 text-center sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:text-left">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-700 transition hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-300 sm:justify-start"
+          >
+            <Image src={icon} alt="" width={18} height={18} /> Logos College
+          </Link>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            © {new Date().getFullYear()} Logos College. Student portfolio showcase.
+          </p>
+          <a
+            href="#projects"
+            className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-500 transition hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300"
+          >
+            Back to projects <ArrowRight className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      </footer>
+
+      {selected && <ProjectModal project={selected} onClose={closeModal} />}
     </main>
   );
 }
 
-function ProjectImage({ src, title }: { src: string; title: string }) {
+/* -------------------------------------------------------------------------- */
+/*                                Project card                                */
+/* -------------------------------------------------------------------------- */
+
+function ProjectCard({
+  project,
+  featured,
+  onOpen,
+}: {
+  project: Project;
+  featured: boolean;
+  onOpen: (project: Project) => void;
+}) {
+  const tech = getTechnologies(project.technologies);
+  const liveUrl = isExternalUrl(project.project_url) ? project.project_url! : null;
+
+  return (
+    <article
+      className={`group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-950/[0.06] dark:border-white/10 dark:bg-[#0d1729] dark:hover:border-blue-400/30 ${
+        featured ? "md:col-span-2 md:flex-row" : ""
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => onOpen(project)}
+        aria-label={`View details of ${project.title}`}
+        className={`relative block overflow-hidden bg-slate-100 text-left focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:bg-slate-900 ${
+          featured ? "md:w-1/2" : ""
+        }`}
+      >
+        <div className={`aspect-[16/10] w-full ${featured ? "md:aspect-auto md:h-full md:min-h-[20rem]" : ""}`}>
+          {project.image_url ? (
+            <ProjectImage src={project.image_url} title={project.title} fit="cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/30">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm dark:bg-white/5 dark:text-blue-300">
+                <Code2 className="h-6 w-6" />
+              </div>
+            </div>
+          )}
+        </div>
+      </button>
+
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <h3 className={`font-bold leading-snug tracking-tight ${featured ? "text-xl sm:text-2xl" : "text-lg"}`}>
+          <button
+            type="button"
+            onClick={() => onOpen(project)}
+            className="text-left transition-colors hover:text-blue-600 focus:outline-none focus-visible:underline dark:hover:text-blue-300"
+          >
+            {project.title}
+          </button>
+        </h3>
+
+        <p
+          className={`mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400 ${
+            featured ? "line-clamp-5" : "line-clamp-3"
+          }`}
+        >
+          {project.description || "A project built as part of this student’s practical work."}
+        </p>
+
+        {tech.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {tech.slice(0, featured ? 8 : 4).map((item) => (
+              <span
+                key={item}
+                className="rounded-md bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700 dark:bg-blue-500/10 dark:text-blue-200"
+              >
+                {item}
+              </span>
+            ))}
+            {tech.length > (featured ? 8 : 4) && (
+              <span className="rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-400">
+                +{tech.length - (featured ? 8 : 4)}
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="mt-auto flex items-center gap-4 pt-6">
+          <button
+            type="button"
+            onClick={() => onOpen(project)}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 transition hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-300"
+          >
+            Details <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </button>
+          {liveUrl && (
+            <a
+              href={liveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 text-xs font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30"
+            >
+              Live project <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Project details                              */
+/* -------------------------------------------------------------------------- */
+
+function ProjectModal({ project, onClose }: { project: Project; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const tech = getTechnologies(project.technologies);
+  const liveUrl = isExternalUrl(project.project_url) ? project.project_url! : null;
+
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={project.title}
+        className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 dark:bg-[#0d1729] sm:rounded-3xl"
+      >
+        <button
+          ref={closeRef}
+          type="button"
+          onClick={onClose}
+          aria-label="Close project details"
+          className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-slate-950/60 text-white backdrop-blur transition hover:bg-slate-950/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/50"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {project.image_url && (
+          <div className="aspect-[16/9] w-full bg-slate-100 dark:bg-slate-900">
+            <ProjectImage src={project.image_url} title={project.title} fit="contain" />
+          </div>
+        )}
+
+        <div className="p-6 sm:p-8">
+          <h2 className={`${serif.className} pr-10 text-2xl font-bold tracking-tight sm:text-3xl`}>
+            {project.title}
+          </h2>
+
+          {tech.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {tech.map((item) => (
+                <span
+                  key={item}
+                  className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/10 dark:text-blue-200"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <p className="mt-5 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
+            {project.description || "A project built as part of this student’s practical work."}
+          </p>
+
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            {liveUrl ? (
+              <a
+                href={liveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30"
+              >
+                View live project <ArrowUpRight className="h-4 w-4" />
+              </a>
+            ) : (
+              <span className="text-sm text-slate-400">No live link provided for this project.</span>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-11 items-center rounded-xl border border-slate-200 px-5 text-sm font-semibold transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectImage({ src, title, fit }: { src: string; title: string; fit: "cover" | "contain" }) {
   const [failed, setFailed] = useState(false);
-  if (failed) return <div className="flex h-full items-center justify-center"><Code2 className="h-10 w-10 text-blue-500/70 dark:text-blue-300/60" /></div>;
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={`${title} preview`} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-contain p-3 sm:p-4 transition-transform duration-500 group-hover:scale-[1.02]" />;
+
+  if (failed) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Code2 className="h-10 w-10 text-blue-500/70 dark:text-blue-300/60" />
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={`${title} preview`}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className={`h-full w-full transition-transform duration-500 ${
+        fit === "cover" ? "object-cover object-top group-hover:scale-[1.03]" : "object-contain p-3"
+      }`}
+    />
+  );
 }
