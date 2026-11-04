@@ -10,7 +10,7 @@ import { countryCodes } from "@/lib/validation";
 
 /** Shared input styling. Error state swaps the border color. */
 export const fieldClass = (hasError?: boolean) =>
-  `h-12 rounded-xl bg-white text-base shadow-sm dark:bg-slate-900 focus-visible:ring-2 focus-visible:ring-blue-500 ${
+  `h-11 rounded-xl bg-white text-base shadow-sm dark:bg-slate-900 focus-visible:ring-2 focus-visible:ring-blue-500 ${
     hasError ? "border-red-500" : "border-slate-200 dark:border-slate-800"
   }`;
 
@@ -79,7 +79,7 @@ export function PhoneField({
             aria-haspopup="listbox"
             aria-expanded={open}
             onClick={() => setOpen((prev) => !prev)}
-            className={`flex h-12 items-center gap-1.5 rounded-l-xl border border-r-0 bg-white px-3 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 dark:bg-slate-900 dark:hover:bg-slate-800 ${
+            className={`flex h-11 items-center gap-1.5 rounded-l-xl border border-r-0 bg-white px-3 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 dark:bg-slate-900 dark:hover:bg-slate-800 ${
               error ? "border-red-500" : "border-slate-200 dark:border-slate-800"
             }`}
           >

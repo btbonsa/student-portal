@@ -1,102 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+// Server-only variable; no NEXT_PUBLIC_ needed for the proxy
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
 
-export async function GET(request: NextRequest) {
-  return handleProxy(request, 'GET');
-}
+async function handleProxy(request: NextRequest) {
+  if (!API_URL) {
+    return NextResponse.json({ error: 'API URL is not configured' }, { status: 500 });
+  }
 
-export async function POST(request: NextRequest) {
-  return handleProxy(request, 'POST');
-}
+  const path = new URL(request.url).searchParams.get('path') ?? '';
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('..')) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
+  }
 
-export async function PUT(request: NextRequest) {
-  return handleProxy(request, 'PUT');
-}
+  const headers = new Headers();
+  const auth = request.headers.get('authorization');
+  if (auth) headers.set('Authorization', auth);
+  const contentType = request.headers.get('content-type');
+  if (contentType) headers.set('Content-Type', contentType); // keeps the multipart boundary intact
 
-export async function DELETE(request: NextRequest) {
-  return handleProxy(request, 'DELETE');
-}
+  const hasBody = !['GET', 'HEAD', 'DELETE'].includes(request.method);
 
-async function handleProxy(request: NextRequest, method: string) {
   try {
-    if (!API_URL) {
-      return NextResponse.json(
-        { error: 'API URL is not configured' },
-        { status: 500 }
-      );
-    }
-
-    const url = new URL(request.url);
-    const path = url.searchParams.get('path') || '';
-
-    if (!path) {
-      return NextResponse.json(
-        { error: 'Path parameter is required' },
-        { status: 400 }
-      );
-    }
-
-    const headers: HeadersInit = {};
-
-    // Forward authorization header if present
-    const authHeader = request.headers.get('authorization');
-    if (authHeader) {
-      headers['Authorization'] = authHeader;
-    }
-
-    const contentType = request.headers.get('content-type');
-    let body;
-
-    if (method !== 'GET' && method !== 'DELETE') {
-      if (contentType && contentType.includes('multipart/form-data')) {
-        // For FormData, forward the body as-is and let browser set Content-Type
-        body = await request.formData();
-        // Don't set Content-Type header for FormData - let the browser set it with boundary
-      } else {
-        headers['Content-Type'] = 'application/json';
-        body = await request.json();
-      }
-    }
-
-    console.log(`Proxying ${method} to ${API_URL}${path}`, {
-      hasBody: !!body,
-      bodyType: body instanceof FormData ? 'FormData' : typeof body,
-      contentType: headers['Content-Type'] || contentType
-    });
-
     const response = await fetch(`${API_URL}${path}`, {
-      method,
+      method: request.method,
       headers,
-      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
+      body: hasBody ? request.body : undefined,
+      // @ts-expect-error required by Node when streaming a request body
+      duplex: 'half',
+      signal: AbortSignal.timeout(15000),
+      cache: 'no-store',
     });
 
-    const responseContentType = response.headers.get('content-type');
-    let data;
-
-    if (responseContentType && responseContentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
-
+    // Keep your existing error shape: { error: "..." }
     if (!response.ok) {
-      console.error('Proxy error response:', {
-        status: response.status,
-        data
-      });
-      return NextResponse.json(
-        { error: typeof data === 'string' ? data : (data.message || data.error || 'Request failed') },
-        { status: response.status }
-      );
+      const text = await response.text();
+      let message = text || 'Request failed';
+      try {
+        const data = JSON.parse(text);
+        message = data.message || data.error || message;
+      } catch {}
+      return NextResponse.json({ error: message }, { status: response.status });
     }
 
-    return NextResponse.json(data);
+    // Stream the success response straight through
+    const resHeaders = new Headers();
+    const ct = response.headers.get('content-type');
+    if (ct) resHeaders.set('Content-Type', ct);
+    const cc = response.headers.get('cache-control');
+    if (cc) resHeaders.set('Cache-Control', cc);
+
+    return new NextResponse(response.body, { status: response.status, headers: resHeaders });
   } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ error: 'Backend took too long to respond' }, { status: 504 });
+    }
     console.error('Proxy error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export const GET = handleProxy;
+export const POST = handleProxy;
+export const PUT = handleProxy;
+export const DELETE = handleProxy;
