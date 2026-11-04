@@ -7,7 +7,8 @@ export interface Program {
   description: string | null;
   duration: string | null;
   fee: string; // This is actually the image URL from the API
-  monthly_fee: string; // This is the actual price from the API
+  monthly_fee: string;
+  image_url: string;
 }
 
 interface ProgramsResponse {
