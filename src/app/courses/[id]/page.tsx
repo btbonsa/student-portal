@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { getPrograms, Program } from "@/services/programservices";
+import { getProgram, Program } from "@/services/programservices";
 import { createRegistration } from "@/services/registrationservices";
 import { getToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -37,17 +37,22 @@ export default function CourseDetailPage() {
   const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
+
+   if (!programId) {
+      setError("Invalid program");
+      setLoading(false);
+      return;
+    }
     const loadProgram = async () => {
       try {
-        const programs = await getPrograms();
-        const foundProgram = programs.find((p) => Number(p.id) === programId);
+        const found = await getProgram(programId);
         
-        if (!foundProgram) {
+        if (!found) {
           setError("Program not found");
           return;
         }
         
-        setProgram(foundProgram);
+        setProgram(found);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load program."
@@ -154,7 +159,7 @@ export default function CourseDetailPage() {
     const token = getToken();
     
     if (!token) {
-      router.push("/login");
+      router.push("/register");
       return;
     }
 
