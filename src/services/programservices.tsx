@@ -1,4 +1,5 @@
-import apiRequest  from "./apiservices";
+import apiRequest from "./apiservices";
+
 
 export interface Program {
   id: number;
@@ -6,7 +7,8 @@ export interface Program {
   description: string | null;
   duration: string | null;
   fee: string; // This is actually the image URL from the API
-  monthly_fee: string; // This is the actual price from the API
+  monthly_fee: string;
+  image_url: string;
 }
 
 interface ProgramsResponse {
@@ -14,10 +16,23 @@ interface ProgramsResponse {
   programs: Program[];
 }
 
-export const getPrograms = async (): Promise<Program[]> => {
-  const response = await apiRequest<ProgramsResponse>(
-    "/programs"
-  );
+interface ProgramResponse {
+  success: boolean;
+  program: Program;
+}
 
+export const getPrograms = async (): Promise<Program[]> => {
+  const response = await apiRequest<ProgramsResponse>("/programs");
   return response.programs;
+};
+
+export const getProgram = async (id: number): Promise<Program | null> => {
+  try {
+    const response = await apiRequest<ProgramResponse>(`/programs/${id}`);
+    return response.program;
+  } catch (err) {
+    // Adjust this depending on how apiRequest reports a 404
+    if (err instanceof Error && /not found/i.test(err.message)) return null;
+    throw err;
+  }
 };
