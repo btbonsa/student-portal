@@ -1,7 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_URL) {
-  console.error("NEXT_PUBLIC_API_URL is not set. Please configure this environment variable.");
+// Never surface backend URLs or hosts in client-side errors.
+function sanitizeErrorMessage(message: string): string {
+  return message.replace(/https?:\/\/[^\s"'()]+/gi, '[internal]');
 }
 
 async function apiRequest <T>(
@@ -33,9 +32,9 @@ async function apiRequest <T>(
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      data.error || data.message || `API request failed with status ${response.status}`
-    );
+    const raw =
+      data.error || data.message || `API request failed with status ${response.status}`;
+    throw new Error(sanitizeErrorMessage(String(raw)));
   }
 
   return data;

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 // Allow next/image to load images served by the backend API host
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const apiUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
 let apiImagePattern: { protocol: "http" | "https"; hostname: string; port?: string } | null = null;
 try {
   if (apiUrl) {

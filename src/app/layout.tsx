@@ -38,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <LanguageProvider>
           {children}
-          <ApiErrorAlert />
+          <ApiErrorAlert missing={!(process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL)} />
         </LanguageProvider>
       </body>
     </html>

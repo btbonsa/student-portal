@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Image from "next/image";
 import type { StaticImageData } from "next/image";
 import Link from "next/link";
@@ -9,6 +10,26 @@ import FashionDesign from "../../public/assets/fashion.png";
 import Camera from "../../public/assets/camera.jpg";
 import MobileMaintenance from "../../public/assets/mobile.jpg";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
+import { getPrograms } from "@/services/programservices";
+
+// shadcn UI & Lucide Components
+import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  ClipboardCheck,
+  Clock,
+  CreditCard,
+  GraduationCap,
+  Mail,
+  MapPin,
+  Phone,
+  Sparkles,
+  Users,
+  Wrench,
+} from "lucide-react";
 
 interface Course {
   id: number;
@@ -21,38 +42,21 @@ interface Course {
   alt: string;
 }
 
-// shadcn UI & Lucide Components
-import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  ArrowRight,
-  Clock,
-  GraduationCap,
-  Sparkles,
-  Users,
-  Wrench,
-  Phone,
-  MapPin,
-  Mail,
-  ArrowUpRight,
-} from "lucide-react";
-
 // Inline Social Icon SVGs
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
+  <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden {...props}>
     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
   </svg>
 );
 
 const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
+  <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden {...props}>
     <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z" />
   </svg>
 );
 
 const TelegramIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
+  <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden {...props}>
     <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
   </svg>
 );
@@ -111,14 +115,66 @@ const features = [
   },
 ];
 
-function ScrollSection({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+const steps = [
+  {
+    icon: GraduationCap,
+    title: "Choose a program",
+    description: "Pick the certificate program that fits your goals.",
+  },
+  {
+    icon: CreditCard,
+    title: "Register & pay",
+    description: "Create your account, transfer the fee and upload your receipt.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Get verified",
+    description: "An admin confirms your payment and activates your registration.",
+  },
+];
+
+function SectionHeading({
+  title,
+  description,
+  center = false,
+}: {
+  title: string;
+  description?: string;
+  center?: boolean;
+}) {
+  return (
+    <div className={center ? "mx-auto max-w-2xl text-center" : "max-w-xl"}>
+      <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-sky-600 dark:text-sky-400">
+        <span aria-hidden className="h-px w-6 bg-gradient-to-r from-sky-400 to-blue-600" />
+      </p>
+      <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
+        {title}
+      </h2>
+      {description && (
+        <p className="mt-3 text-slate-600 dark:text-slate-400">{description}</p>
+      )}
+    </div>
+  );
+}
+
+function ScrollSection({
+  children,
+  className = "",
+  id,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  id?: string;
+}) {
   const { ref, isVisible } = useScrollAnimation(0.1);
 
   return (
     <section
       ref={ref}
       id={id}
-      className={`transition-all duration-1000 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'} ${className}`}
+      className={`scroll-mt-20 transition-all duration-1000 ease-out motion-reduce:translate-y-0 motion-reduce:opacity-100 motion-reduce:transition-none ${
+        isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+      } ${className}`}
     >
       {children}
     </section>
@@ -126,29 +182,49 @@ function ScrollSection({ children, className = "", id }: { children: React.React
 }
 
 export default function Home() {
+  // Warm the proxy's public /programs cache so the course detail page
+  // (and its LCP image) renders from cache instead of waiting on the backend.
+  useEffect(() => {
+    getPrograms().catch(() => {});
+  }, []);
+
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50 flex flex-col justify-between selection:bg-blue-400 selection:text-white">
+    <main className="flex min-h-[100dvh] flex-col justify-between overflow-hidden bg-slate-50 text-slate-900 selection:bg-sky-500 selection:text-white dark:bg-slate-950 dark:text-slate-50">
       <div>
         <Navbar />
         <Hero />
 
-        {/* Why Choose Us Section */}
-        <ScrollSection className="px-5 py-16 sm:py-20 bg-slate-100/70 dark:bg-slate-900/40 border-y border-slate-200/80 dark:border-slate-800/80">
+        <ScrollSection className="relative border-y border-slate-200/80 bg-gradient-to-b from-slate-100/80 to-slate-50 px-5 py-16 dark:border-slate-800/80 dark:from-slate-900/50 dark:to-slate-950 sm:py-20">
           <div className="mx-auto max-w-6xl">
-            <div className="text-center space-y-2 mb-12">
-              <p className="text-xs font-bold uppercase tracking-widest text-blue-400">Why Logos College</p>
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950 dark:text-white">Built for hands-on learners</h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              {features.map((feat) => {
-                const IconComponent = feat.icon;
+            <SectionHeading
+              center
+              title="Built for hands-on learners"
+              description="Real equipment, real professionals and small groups, so you learn skills you can use straight away."
+            />
+
+            <div className="mt-12 grid gap-6 md:grid-cols-3 md:gap-8">
+              {features.map((feat, i) => {
+                const Icon = feat.icon;
                 return (
-                  <div key={feat.title} className="group relative flex flex-col items-center text-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-blue-400/50">
-                    <div className="h-14 w-14 rounded-2xl bg-blue-400/10 text-blue-400 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-blue-400 group-hover:text-white transition-all duration-300">
-                      <IconComponent className="h-7 w-7" />
+                  <div
+                    key={feat.title}
+                    className="group relative flex flex-col items-center overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-8 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-sky-400/50 hover:shadow-xl hover:shadow-sky-900/10 dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute right-5 top-4 text-5xl font-black text-slate-100 transition-colors group-hover:text-sky-100 dark:text-slate-800 dark:group-hover:text-sky-950"
+                    >
+                      0{i + 1}
+                    </span>
+                    <div className="relative mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-700 text-white shadow-md shadow-blue-900/25 transition-transform duration-300 group-hover:scale-110">
+                      <Icon className="h-7 w-7" aria-hidden />
                     </div>
-                    <h3 className="font-bold text-xl mb-2 text-slate-900 dark:text-slate-100">{feat.title}</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{feat.description}</p>
+                    <h3 className="relative mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">
+                      {feat.title}
+                    </h3>
+                    <p className="relative text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                      {feat.description}
+                    </p>
                   </div>
                 );
               })}
@@ -156,26 +232,20 @@ export default function Home() {
           </div>
         </ScrollSection>
 
-        {/* Image-Covered Touchable Programs Section */}
+        {/* Programs */}
         <ScrollSection id="programs" className="px-5 py-20 sm:py-24">
           <div className="mx-auto max-w-6xl space-y-12">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-blue-400">
-                  Learn by doing
-                </p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
-                  Featured Programs
-                </h2>
-                <p className="mt-2 max-w-xl text-slate-600 dark:text-slate-400">
-                  Tap any card below to explore and start your online registration.
-                </p>
-              </div>
+              <SectionHeading
+                title="Featured Programs"
+                description="Tap any card below to explore and start your online registration."
+              />
               <Link
                 href="/register"
                 className={buttonVariants({
                   variant: "link",
-                  className: "group p-0 font-bold text-blue-400 hover:text-blue-500 hover:no-underline text-sm"
+                  className:
+                    "group min-h-11 p-0 text-sm font-bold text-sky-600 hover:text-sky-700 hover:no-underline dark:text-sky-400",
                 })}
               >
                 Browse all programs
@@ -183,73 +253,72 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-3">
-              {courses.map((course: Course) => (
-                <Link key={course.id} href={`/courses/${course.id}`} className="group block focus:outline-none">
-                  <Card className="relative flex flex-col h-full overflow-hidden rounded-3xl border-border/60 bg-card shadow-md transition-all duration-500 hover:-translate-y-2 hover:border-blue-400/60 hover:shadow-2xl hover:shadow-blue-400/15 group-focus:ring-2 group-focus:ring-blue-400">
-                    <div className="flex flex-col h-full justify-between">
-                      {/* Image Container with Title & Badges */}
-                      <div className="relative h-64 w-full overflow-hidden bg-gradient-to-br from-blue-900/20 to-indigo-900/30">
-                        <Image
-                          src={course.image}
-                          alt={course.alt}
-                          fill
-                          className="object-cover transition-transform duration-700 group-hover:scale-110"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
+            <div className="grid gap-6 md:grid-cols-3 md:gap-8">
+              {courses.map((course) => (
+                <Link
+                  key={course.id}
+                  href={`/courses/${course.id}`}
+                  className="group block rounded-3xl focus:outline-none"
+                >
+                  <Card className="relative flex h-full flex-col overflow-hidden rounded-3xl border-border/60 bg-card shadow-md transition-all duration-500 hover:-translate-y-2 hover:border-sky-400/60 hover:shadow-2xl hover:shadow-sky-500/15 group-focus-visible:ring-2 group-focus-visible:ring-sky-500 group-focus-visible:ring-offset-2">
+                    {/* Image */}
+                    <div className="relative h-60 w-full overflow-hidden bg-gradient-to-br from-blue-900/20 to-indigo-900/30 sm:h-64">
+                      <Image
+                        src={course.image}
+                        alt={course.alt}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#06142e]/90 via-[#06142e]/30 to-[#06142e]/10" />
 
-                        {/* Gradient Overlay for Text Readability */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
-
-                        {/* Header Overlay Badges */}
-                        <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-                          <Badge className="bg-black/40 backdrop-blur-md text-white font-medium border border-white/10 shadow-sm gap-1 text-[11px]">
-                            <Sparkles className="h-3 w-3 text-blue-400" />
-                            {course.category}
-                          </Badge>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white transition-all duration-300 group-hover:bg-blue-400 group-hover:scale-110">
-                            <ArrowUpRight className="h-5 w-5" />
-                          </div>
-                        </div>
-
-                        {/* Course Title Over Image */}
-                        <div className="absolute bottom-4 left-4 right-4 z-10">
-                          <h3 className="text-xl font-bold text-white tracking-tight line-clamp-2 drop-shadow-sm group-hover:text-blue-300 transition-colors">
-                            {course.title}
-                          </h3>
-                        </div>
-
-                        {/* Animated Hover Reveal Badge Bar */}
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/90 to-transparent p-4 pt-8 text-white z-20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
-                            <Clock className="h-3.5 w-3.5 text-blue-400" />
-                            <span>Duration: {course.duration}</span>
-                          </div>
-                          <span className="text-xs font-bold text-blue-400 underline">View Details</span>
+                      {/* Top row */}
+                      <div className="absolute left-3 right-3 top-3 z-10 flex items-center justify-between">
+                        <Badge className="gap-1 border border-white/15 bg-black/40 text-[11px] font-medium text-white shadow-sm backdrop-blur-md">
+                          <Sparkles className="h-3 w-3 text-sky-300" aria-hidden />
+                          {course.category}
+                        </Badge>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:bg-sky-500">
+                          <ArrowUpRight className="h-5 w-5" aria-hidden />
                         </div>
                       </div>
 
-                      {/* Card Body - Description Below Image */}
-                      <CardContent className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400 line-clamp-3">
-                          {course.description}
-                        </p>
+                      {/* Title + duration (always visible, works on touch) */}
+                      <div className="absolute inset-x-4 bottom-4 z-10 space-y-2">
+                        <h3 className="line-clamp-2 text-xl font-bold tracking-tight text-white drop-shadow-sm transition-colors group-hover:text-sky-200">
+                          {course.title}
+                        </h3>
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-100 backdrop-blur-md">
+                          <Clock className="h-3.5 w-3.5 text-sky-300" aria-hidden />
+                          {course.duration}
+                        </span>
+                      </div>
+                    </div>
 
-                        {/* Skills Tags */}
-                        <div className="flex flex-wrap gap-2">
-                          {course.skills.map((skill, index) => (
-                            <Badge key={index} variant="outline" className="text-xs font-medium border-blue-400/30 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">
+                    {/* Body */}
+                    <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-6">
+                      <p className="line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                        {course.description}
+                      </p>
+
+                      <ul aria-label={`${course.title} skills`} className="flex flex-wrap gap-2">
+                        {course.skills.map((skill) => (
+                          <li key={skill}>
+                            <Badge
+                              variant="outline"
+                              className="border-sky-400/30 bg-sky-50 text-xs font-medium text-sky-700 dark:bg-sky-950/30 dark:text-sky-300"
+                            >
                               {skill}
                             </Badge>
-                          ))}
-                        </div>
+                          </li>
+                        ))}
+                      </ul>
 
-                        <div className="pt-3 border-t border-border/40 flex items-center justify-between text-xs font-bold text-slate-500 group-hover:text-blue-400 transition-colors">
-                          <span>View course details</span>
-                          <span className="text-sm transition-transform group-hover:translate-x-1">→</span>
-                        </div>
-                      </CardContent>
-                    </div>
+                      <div className="flex items-center justify-between border-t border-border/40 pt-3 text-xs font-bold text-slate-500 transition-colors group-hover:text-sky-600 dark:group-hover:text-sky-400">
+                        <span>View course details</span>
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+                      </div>
+                    </CardContent>
                   </Card>
                 </Link>
               ))}
@@ -257,101 +326,168 @@ export default function Home() {
           </div>
         </ScrollSection>
 
-        {/* Banner Call-To-Action */}
-        <ScrollSection className="px-5 pb-20 sm:pb-24">
-          <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:gap-8 overflow-hidden rounded-3xl bg-slate-900 dark:bg-slate-900/90 border border-slate-800 p-6 sm:p-8 md:p-12 text-white shadow-2xl sm:flex-row sm:items-center relative">
-            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="max-w-2xl space-y-3 z-10">
-              <Badge className="bg-blue-400/20 text-blue-400 border-none font-bold text-xs uppercase tracking-widest">
+        {/* How it works */}
+        <ScrollSection className="border-y border-slate-200/80 bg-white px-5 py-16 dark:border-slate-800/80 dark:bg-slate-900/40 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <SectionHeading
+              center
+              title="Start in three simple steps"
+            />
+
+            <ol className="mt-12 grid gap-8 md:grid-cols-3 md:gap-6">
+              {steps.map((step, i) => {
+                const Icon = step.icon;
+                return (
+                  <li key={step.title} className="relative flex flex-col items-center text-center">
+                    {i < steps.length - 1 && (
+                      <span
+                        aria-hidden
+                        className="absolute left-[calc(50%+2.5rem)] top-8 hidden h-px w-[calc(100%-5rem)] border-t-2 border-dashed border-sky-300/60 md:block dark:border-sky-700/60"
+                      />
+                    )}
+                    <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-700 text-white shadow-lg shadow-blue-900/25">
+                      <Icon className="h-7 w-7" aria-hidden />
+                      <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-black text-blue-700 shadow ring-1 ring-slate-200 dark:bg-slate-900 dark:text-sky-300 dark:ring-slate-700">
+                        {i + 1}
+                      </span>
+                    </span>
+                    <h3 className="mt-5 text-lg font-bold text-slate-900 dark:text-slate-100">
+                      {step.title}
+                    </h3>
+                    <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                      {step.description}
+                    </p>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </ScrollSection>
+
+        {/* Call-to-action banner */}
+        <ScrollSection className="px-5 py-16 sm:py-20">
+          <div className="relative isolate mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 overflow-hidden rounded-3xl border border-slate-800 bg-[#06142e] p-6 text-white shadow-2xl shadow-blue-950/30 sm:flex-row sm:items-center sm:gap-8 sm:p-8 md:p-12">
+            <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 -z-10 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl" />
+            <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/4 -z-10 h-64 w-64 rounded-full bg-sky-400/15 blur-3xl" />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-10 opacity-[0.06]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
+                backgroundSize: "44px 44px",
+                maskImage: "linear-gradient(to bottom right, black, transparent 70%)",
+                WebkitMaskImage: "linear-gradient(to bottom right, black, transparent 70%)",
+              }}
+            />
+
+            <div className="max-w-2xl space-y-3">
+              <Badge className="border border-sky-300/20 bg-sky-400/15 text-xs font-bold uppercase tracking-widest text-sky-200">
                 Start Today
               </Badge>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight">
-                Your future is worth investing in.
+              <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl md:text-4xl">
+                Your future is worth{" "}
+                <span className="bg-gradient-to-r from-sky-300 to-blue-400 bg-clip-text text-transparent">
+                  investing in.
+                </span>
               </h2>
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+              <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
                 Create your account today and start building practical technical skills with Logos College.
               </p>
             </div>
+
             <Link
               href="/register"
               className={buttonVariants({
                 size: "lg",
-                className: "group shrink-0 font-bold shadow-lg gap-2 !bg-blue-400 hover:!bg-blue-500 text-white border-none rounded-xl h-12 px-6 sm:px-7 transition-all duration-300 hover:scale-[1.03] z-10 w-full sm:w-auto",
+                className:
+                  "group h-12 w-full shrink-0 gap-2 rounded-xl border-none !bg-gradient-to-r !from-blue-600 !to-sky-500 px-6 font-bold text-white shadow-lg shadow-blue-600/40 transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110 sm:w-auto sm:px-7",
               })}
             >
               Start Registration Now
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
             </Link>
           </div>
         </ScrollSection>
       </div>
 
-      {/* Footer Section */}
-      <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-slate-600 dark:text-slate-400 text-sm pt-10 sm:pt-12 pb-8">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 pb-8 sm:pb-10 border-b border-slate-200 dark:border-slate-800">
-
-            {/* Column 1: Identity */}
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white pb-8 pt-10 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 sm:pt-12">
+        <div className="mx-auto max-w-6xl px-5">
+          <div className="grid grid-cols-1 gap-8 border-b border-slate-200 pb-8 dark:border-slate-800 sm:grid-cols-2 sm:pb-10 lg:grid-cols-4">
+            {/* Identity */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Image src="/assets/logo.png" alt="Logos College" width={80} height={32} className="rounded-lg object-contain" />
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              <Link href="/" className="inline-block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-500">
+                <Image
+                  src="/assets/logo.png"
+                  alt="Logos College"
+                  width={80}
+                  height={32}
+                  className="rounded-lg object-contain"
+                />
+              </Link>
+              <p className="max-w-xs text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                 Empowering individuals through practical vocational education and career-focused technical training.
               </p>
             </div>
 
-            {/* Column 2: Quick Links */}
+            {/* Quick links */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 Quick Navigation
               </h4>
               <ul className="space-y-2 text-xs">
-                <li>
-                  <Link href="#programs" className="hover:text-blue-400 transition-colors">
-                    Available Programs
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/register" className="hover:text-blue-400 transition-colors">
-                    Online Registration
-                  </Link>
-                </li>
+                {[
+                  ["Available Programs", "#programs"],
+                  ["Online Registration", "/register"],
+                  ["Student Portal", "/login"],
+                ].map(([label, href]) => (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      className="inline-flex min-h-6 items-center transition-colors hover:text-sky-600 dark:hover:text-sky-400"
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
 
-            {/* Column 3: Contact Info */}
+            {/* Contact */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 Contact Details
               </h4>
-              <ul className="space-y-2.5 text-xs">
-                <li className="flex items-center gap-2.5">
-                  <Phone className="h-4 w-4 text-blue-400 shrink-0" />
-                  <div className="flex flex-col sm:flex-row gap-1">
-                    <a href="tel:+251947788899" className="hover:text-blue-400 transition-colors">
+              <ul className="space-y-3 text-xs">
+                <li className="flex items-start gap-2.5">
+                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" aria-hidden />
+                  <div className="flex flex-col gap-1">
+                    <a href="tel:+251947788899" className="transition-colors hover:text-sky-600 dark:hover:text-sky-400">
                       +251 947788899
                     </a>
-                    <span>/</span>
-                    <a href="tel:+251947628899" className="hover:text-blue-400 transition-colors">
+                    <a href="tel:+251947628899" className="transition-colors hover:text-sky-600 dark:hover:text-sky-400">
                       +251 947628899
                     </a>
                   </div>
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Mail className="h-4 w-4 text-blue-400 shrink-0" />
-                  <a href="mailto:info@logoscollege.edu.et" className="hover:text-blue-400 transition-colors">
+                  <Mail className="h-4 w-4 shrink-0 text-sky-500" aria-hidden />
+                  <a
+                    href="mailto:info@logoscollege.edu.et"
+                    className="break-all transition-colors hover:text-sky-600 dark:hover:text-sky-400"
+                  >
                     info@logoscollege.edu.et
                   </a>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <MapPin className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" aria-hidden />
                   <span>Holeta 44, Ethiopia</span>
                 </li>
               </ul>
             </div>
 
-            {/* Column 4: Social Links */}
+            {/* Social */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 Follow Us
@@ -361,19 +497,19 @@ export default function Home() {
               </p>
               <div className="flex items-center gap-3 pt-1">
                 <a
-                  href="https://www.tiktok.com/@logosofficial12?_r=1&_d=f4i6b4175dlhdl&sec_uid=MS4wLjABAAAAv4gPm6tMBgCBrB-fAIDiLuiUsEvuArLRyQwrHoMeRucgYJ5OiYAO-k43mejuCG1l&share_author_id=7390807151968519173&sharer_language=en&source=h5_m&u_code=ehi68hc36c6k4f&timestamp=1791986238&user_id=7446472599016735750&sec_user_id=MS4wLjABAAAA7nJ38wpRHyRqh1LC4PXTfU_Jak5kSwfMul3DOY7ER8D471lDMV_jUsSnNrTD9o3a&item_author_type=2&utm_source=copy&utm_campaign=client_share&utm_medium=android&share_iid=7693848782064092948&share_link_id=bc11668b-5e4d-443f-b001-c2733cc7254b&share_app_id=1233&ugbiz_name=ACCOUNT&ug_btm=b6880%2Cb5836&social_share_type=5&share_enter_from=others_homepage&item_author_type=2&enable_checksum=1"
+                  href="https://www.tiktok.com/@logosofficial12"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-9 w-9 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-all hover:-translate-y-0.5 hover:bg-black hover:text-white dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-white dark:hover:text-black"
                   aria-label="TikTok"
                 >
                   <TikTokIcon className="h-4 w-4" />
                 </a>
                 <a
-                  href="https://www.instagram.com/logos_4796/?utm_source=ig_web_button_share_sheet"
+                  href="https://www.instagram.com/logos_4796/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-9 w-9 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-gradient-to-br hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] hover:text-white dark:hover:text-white transition-all"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] hover:text-white dark:bg-slate-900 dark:text-slate-300"
                   aria-label="Instagram"
                 >
                   <InstagramIcon className="h-4 w-4" />
@@ -382,22 +518,25 @@ export default function Home() {
                   href="https://t.me"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-9 w-9 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-[#26A5E4] hover:text-white dark:hover:bg-[#26A5E4] dark:hover:text-white transition-all"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-all hover:-translate-y-0.5 hover:bg-[#26A5E4] hover:text-white dark:bg-slate-900 dark:text-slate-300"
                   aria-label="Telegram"
                 >
                   <TelegramIcon className="h-4 w-4" />
                 </a>
               </div>
             </div>
-
           </div>
 
-          {/* Sub-Footer */}
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          {/* Sub-footer */}
+          <div className="flex flex-col items-center justify-between gap-4 pt-6 text-xs text-slate-500 sm:flex-row">
             <p>© {new Date().getFullYear()} Logos College. All rights reserved.</p>
             <div className="flex items-center gap-6">
-              <Link href="/privacy" className="hover:text-blue-400 transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-blue-400 transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="transition-colors hover:text-sky-600 dark:hover:text-sky-400">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="transition-colors hover:text-sky-600 dark:hover:text-sky-400">
+                Terms of Service
+              </Link>
             </div>
           </div>
         </div>

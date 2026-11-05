@@ -10,6 +10,16 @@ const CACHE_TTL_MS = 60_000;
 const cacheablePath = /^\/programs(\/|$)/;
 const publicCache = new Map<string, { body: string; contentType: string; expires: number }>();
 
+// Strip backend URLs/hosts from error text so they never reach the browser.
+function sanitizeError(message: string): string {
+  return message
+    .replace(/https?:\/\/[^\s"'()]+/gi, '[internal]')
+    .replace(/\b\d{1,3}(\.\d{1,3}){3}(:\d+)?(\/\S*)?/g, '[internal]')
+    .replace(/\b[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?(\/\S*)?/gi, (m) =>
+      /\.(com|net|org|io|dev|app|et|co)(\/|$|:)/i.test(m) ? '[internal]' : m
+    );
+}
+
 function isPublicCacheable(method: string, path: string, hasAuth: boolean) {
   return method === 'GET' && !hasAuth && cacheablePath.test(path);
 }
@@ -51,17 +61,17 @@ async function handleProxy(request: NextRequest) {
       body: hasBody ? request.body : undefined,
       // @ts-expect-error required by Node when streaming a request body
       duplex: 'half',
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(30000),
       cache: 'no-store',
     });
 
     // Keep your existing error shape: { error: "..." }
     if (!response.ok) {
       const text = await response.text();
-      let message = text || 'Request failed';
+      let message = sanitizeError(text || 'Request failed');
       try {
         const data = JSON.parse(text);
-        message = data.message || data.error || message;
+        message = sanitizeError(data.message || data.error || message);
       } catch {}
       return NextResponse.json({ error: message }, { status: response.status });
     }

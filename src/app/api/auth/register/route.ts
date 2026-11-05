@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerBackendSchema } from '@/lib/validation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('Register request body:', body);
 
     // Validate with Zod schema (backend schema without confirm_password)
     const validationResult = registerBackendSchema.safeParse(body);
@@ -24,7 +23,6 @@ export async function POST(request: NextRequest) {
         const field = err.path.join(".");
         errors[field] = err.message;
       });
-      console.log('Validation errors:', errors);
       return NextResponse.json(
         { error: 'Validation failed', details: errors },
         { status: 400 }
@@ -32,7 +30,6 @@ export async function POST(request: NextRequest) {
     }
 
     const validatedData = validationResult.data;
-    console.log('Validated data:', validatedData);
 
     const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
@@ -47,7 +44,6 @@ export async function POST(request: NextRequest) {
 
     // Get response text first to handle both JSON and plain text responses
     const responseText = await response.text();
-    console.log('Backend response:', responseText);
 
     if (!response.ok) {
       // Try to parse as JSON, fall back to plain text
