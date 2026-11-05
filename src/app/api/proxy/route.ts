@@ -3,6 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 // Server-only variable; no NEXT_PUBLIC_ needed for the proxy
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
 
+// Short-lived cache for PUBLIC catalog endpoints only.
+// Requests carrying an Authorization header are never cached, so
+// user-specific data can never leak between students.
+const CACHE_TTL_MS = 60_000;
+const cacheablePath = /^\/programs(\/|$)/;
+const publicCache = new Map<string, { body: string; contentType: string; expires: number }>();
+
+function isPublicCacheable(method: string, path: string, hasAuth: boolean) {
+  return method === 'GET' && !hasAuth && cacheablePath.test(path);
+}
+
 async function handleProxy(request: NextRequest) {
   if (!API_URL) {
     return NextResponse.json({ error: 'API URL is not configured' }, { status: 500 });
@@ -13,8 +24,20 @@ async function handleProxy(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
   }
 
-  const headers = new Headers();
   const auth = request.headers.get('authorization');
+  const cacheable = isPublicCacheable(request.method, path, !!auth);
+
+  if (cacheable) {
+    const hit = publicCache.get(path);
+    if (hit && hit.expires > Date.now()) {
+      return new NextResponse(hit.body, {
+        status: 200,
+        headers: { 'Content-Type': hit.contentType, 'Cache-Control': 'public, max-age=60' },
+      });
+    }
+  }
+
+  const headers = new Headers();
   if (auth) headers.set('Authorization', auth);
   const contentType = request.headers.get('content-type');
   if (contentType) headers.set('Content-Type', contentType); // keeps the multipart boundary intact
@@ -41,6 +64,18 @@ async function handleProxy(request: NextRequest) {
         message = data.message || data.error || message;
       } catch {}
       return NextResponse.json({ error: message }, { status: response.status });
+    }
+
+    // Cacheable public GETs are buffered so they can be stored; everything
+    // else keeps streaming straight through.
+    if (cacheable) {
+      const body = await response.text();
+      const contentType = response.headers.get('content-type') ?? 'application/json';
+      publicCache.set(path, { body, contentType, expires: Date.now() + CACHE_TTL_MS });
+      return new NextResponse(body, {
+        status: response.status,
+        headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=60' },
+      });
     }
 
     // Stream the success response straight through

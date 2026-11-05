@@ -6,9 +6,9 @@ export interface Program {
   name: string;
   description: string | null;
   duration: string | null;
-  fee: string; // This is actually the image URL from the API
+  fee: string;
   monthly_fee: string;
-  image_url: string;
+  image_url: string | null;
 }
 
 interface ProgramsResponse {
@@ -21,14 +21,21 @@ interface ProgramResponse {
   program: Program;
 }
 
-export const getPrograms = async (): Promise<Program[]> => {
-  const response = await apiRequest<ProgramsResponse>("/programs");
+export const getPrograms = async (token?: string): Promise<Program[]> => {
+  const response = await apiRequest<ProgramsResponse>("/programs", {}, token);
   return response.programs;
 };
 
-export const getProgram = async (id: number): Promise<Program | null> => {
+export const getProgram = async (
+  id: number,
+  token?: string
+): Promise<Program | null> => {
   try {
-    const response = await apiRequest<ProgramResponse>(`/programs/${id}`);
+    const response = await apiRequest<ProgramResponse>(
+      `/programs/${id}`,
+      {},
+      token
+    );
     return response.program;
   } catch (err) {
     // Adjust this depending on how apiRequest reports a 404

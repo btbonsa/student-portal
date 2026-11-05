@@ -1,7 +1,5 @@
+import apiRequest from "./apiservices";
 import { Payment } from "../types/payment";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL
 
 export interface UploadPaymentData {
   amount: number;
@@ -34,24 +32,14 @@ export const uploadPayment = async (
 
   formData.append("payment_proof", data.screenshot);
 
-  const response = await fetch(
-    `${API_URL}/payments`,
+  // Go through the server-side proxy to avoid mixed-content issues
+  // and to keep a consistent timeout/error path with other requests.
+  return apiRequest<PaymentResponse>(
+    "/payments",
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
       body: formData,
-    }
+    },
+    token
   );
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      result.message || "Payment upload failed"
-    );
-  }
-
-  return result;
 };

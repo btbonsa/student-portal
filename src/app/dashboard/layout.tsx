@@ -69,7 +69,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
+  // Keep the photo-update listener active on every dashboard route
   useEffect(() => {
+    const handler = (e: Event) => {
+      const newPhotoUrl = (e as CustomEvent<string>).detail;
+      setProfile(prev => prev ? { ...prev, profile_photo_url: newPhotoUrl } : null);
+    };
+    window.addEventListener("profile-photo-updated", handler);
+    return () => {
+      window.removeEventListener("profile-photo-updated", handler);
+    };
+  }, []);
+
+  // Fetch the profile only when the sidebar is shown and we don't have it yet
+  useEffect(() => {
+    if (noSidebarRoutes.includes(pathname) || profile) return;
+
     const loadProfile = async () => {
       const token = getToken();
       if (!token) return;
@@ -82,16 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
 
     loadProfile();
-
-    const handler = (e: Event) => {
-      const newPhotoUrl = (e as CustomEvent<string>).detail;
-      setProfile(prev => prev ? { ...prev, profile_photo_url: newPhotoUrl } : null);
-    };
-    window.addEventListener("profile-photo-updated", handler);
-    return () => {
-      window.removeEventListener("profile-photo-updated", handler);
-    };
-  }, []);
+  }, [pathname, profile]);
 
   if (noSidebarRoutes.includes(pathname)) return <>{children}</>;
 

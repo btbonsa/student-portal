@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { getProgram, Program } from "@/services/programservices";
+import { getPrograms, Program } from "@/services/programservices";
 import { createRegistration } from "@/services/registrationservices";
 import { getToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,14 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "");
+
+function resolveImageUrl(url: string | null | undefined) {
+  if (!url) return null;
+  if (url.startsWith("/")) return `${API_ORIGIN}${url}`;
+  return url;
+}
+
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -45,7 +53,9 @@ export default function CourseDetailPage() {
     }
     const loadProgram = async () => {
       try {
-        const found = await getProgram(programId);
+        // Fetch the public catalog without a token so the proxy cache applies
+        const programs = await getPrograms();
+        const found = programs.find((p) => p.id === programId) ?? null;
 
         if (!found) {
           setError("Program not found");
@@ -202,28 +212,33 @@ export default function CourseDetailPage() {
           <div className="lg:col-span-2 space-y-8">
             {/* Program Image */}
             <div className="relative h-[400px] sm:h-[500px] w-full overflow-hidden rounded-3xl bg-gradient-to-br from-blue-900/20 to-indigo-900/30">
-              {program.image_url ? (
-                <Image
-                  src={program.image_url}
-                  alt={program.name}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 66vw"
-                  onError={(e) => {
-                    const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon') as HTMLElement;
-                    if (fallback) fallback.style.display = 'flex';
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : null}
-              <div className={`absolute inset-0 flex items-center justify-center fallback-icon ${program.image_url ? 'hidden' : 'flex'}`}>
-                <div className={`absolute inset-0 flex items-center justify-center fallback-icon ${program.fee ? 'hidden' : 'flex'}`}>
-                  <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-blue-400/10 text-blue-400">
-                    <GraduationCap className="h-12 w-12" />
-                  </div>
-                </div>
-              </div>
+              {(() => {
+                const imageUrl = resolveImageUrl(program.image_url);
+                return (
+                  <>
+                    {imageUrl ? (
+                      <Image
+                        src={imageUrl}
+                        alt={program.name}
+                        fill
+                        className="object-cover"
+                        priority
+                        sizes="(max-width: 1024px) 100vw, 66vw"
+                        onError={(e) => {
+                          const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon') as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : null}
+                    <div className={`absolute inset-0 flex items-center justify-center fallback-icon ${imageUrl ? 'hidden' : 'flex'}`}>
+                      <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-blue-400/10 text-blue-400">
+                        <GraduationCap className="h-12 w-12" />
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
 
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />

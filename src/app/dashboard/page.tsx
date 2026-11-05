@@ -78,7 +78,26 @@ export default function DashboardPage() {
         setLoading(true);
         setError("");
 
-        const registrationData = await getMyRegistration(token);
+        // Fetch registration and schedule in parallel — they don't depend on each other
+        const [registrationResult, scheduleResult] = await Promise.allSettled([
+          getMyRegistration(token),
+          getMyClassSchedule(token),
+        ]);
+
+        if (registrationResult.status === "rejected") {
+          const err = registrationResult.reason;
+          // No registration at all → go to programs
+          if (err instanceof Error && err?.message?.toLowerCase().includes("no registration")) {
+            router.replace("/dashboard/programs");
+            return;
+          }
+          setError(
+            err instanceof Error ? err.message : "Failed to load dashboard."
+          );
+          return;
+        }
+
+        const registrationData = registrationResult.value;
         setRegistration(registrationData);
 
         // Gate: only REGISTERED (payment approved) can access dashboard
@@ -87,18 +106,10 @@ export default function DashboardPage() {
           return;
         }
 
-        try {
-          const scheduleData = await getMyClassSchedule(token);
-          setSchedule(scheduleData);
-        } catch {
-          setSchedule(null);
-        }
+        setSchedule(
+          scheduleResult.status === "fulfilled" ? scheduleResult.value : null
+        );
       } catch (err: unknown) {
-        // No registration at all → go to programs
-        if (err instanceof Error && err?.message?.toLowerCase().includes("no registration")) {
-          router.replace("/dashboard/programs");
-          return;
-        }
         setError(
           err instanceof Error ? err.message : "Failed to load dashboard."
         );
