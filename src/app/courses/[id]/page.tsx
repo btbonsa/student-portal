@@ -10,22 +10,101 @@ import { getToken } from "@/lib/auth";
 import { getProgramImageUrl } from "@/lib/program-image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  AlertCircle,
   ArrowLeft,
-  Clock,
-  Loader2,
-  Sparkles,
-  CheckCircle2,
-  GraduationCap,
-  BookOpen,
-  TrendingUp,
-  Calendar,
-  Users,
-  Award,
   ArrowRight,
+  Award,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  GraduationCap,
+  Loader2,
+  Users,
 } from "lucide-react";
+
+/* ------------------------------------------------------------------ */
+/* Static content                                                      */
+/* ------------------------------------------------------------------ */
+
+const OUTCOMES: { keywords: string[]; items: string[] }[] = [
+  {
+    keywords: ["camera", "photography"],
+    items: [
+      "Photography",
+      "Videography",
+      "Video editing",
+      "Photo editing",
+      "Studio lighting",
+      "Visual storytelling",
+    ],
+  },
+  {
+    keywords: ["fashion", "design"],
+    items: [
+      "Sketching",
+      "Color theory",
+      "Pattern making",
+      "Sewing",
+      "Garment construction",
+      "Building a fashion portfolio",
+    ],
+  },
+  {
+    keywords: ["mobile", "maintenance"],
+    items: [
+      "Hardware maintenance",
+      "Software maintenance",
+      "Handling customers",
+      "Saving money on repairs",
+      "Diagnostic techniques",
+      "Setting up a repair business",
+    ],
+  },
+];
+
+const DEFAULT_OUTCOMES = [
+  "Practical hands-on training",
+  "Industry-standard techniques",
+  "Real-world project experience",
+  "Professional portfolio development",
+  "Career guidance and support",
+  "Certificate on completion",
+];
+
+function getLearningOutcomes(programName: string): string[] {
+  const name = programName.toLowerCase();
+  const match = OUTCOMES.find((o) => o.keywords.some((k) => name.includes(k)));
+  return match ? match.items : DEFAULT_OUTCOMES;
+}
+
+const STAGES = [
+  {
+    title: "Foundation skills",
+    text: "Learn the fundamentals and core concepts you'll build on.",
+  },
+  {
+    title: "Advanced techniques",
+    text: "Move on to professional-level skills and methods.",
+  },
+  {
+    title: "Practical projects",
+    text: "Apply everything on real projects for your portfolio.",
+  },
+];
+
+const PERKS = [
+  "100% practical training",
+  "Industry expert instructors",
+  "Hands-on projects",
+  "Career support",
+  "Recognized certificate",
+];
+
+/* ------------------------------------------------------------------ */
+/* Page                                                                */
+/* ------------------------------------------------------------------ */
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -34,77 +113,88 @@ export default function CourseDetailPage() {
 
   const [program, setProgram] = useState<Program | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [enrollError, setEnrollError] = useState("");
   const [enrolling, setEnrolling] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
-
     if (!programId) {
-      setError("Invalid program");
+      setLoadError("Invalid program");
       setLoading(false);
       return;
     }
+
+    let cancelled = false;
+
     const loadProgram = async () => {
       try {
-        // Fetch the public catalog without a token so the proxy cache applies
+        // Public catalog: fetched without a token so the proxy cache applies
         const programs = await getPrograms();
-        const found = programs.find((p) => p.id === programId) ?? null;
+        if (cancelled) return;
 
+        const found = programs.find((p) => p.id === programId) ?? null;
         if (!found) {
-          setError("Program not found");
+          setLoadError("Program not found");
           return;
         }
-
         setProgram(found);
       } catch (err) {
-        setError(
+        if (cancelled) return;
+        setLoadError(
           err instanceof Error ? err.message : "Failed to load program."
         );
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    if (programId) {
-      loadProgram();
-    }
+    loadProgram();
+    return () => {
+      cancelled = true;
+    };
   }, [programId]);
+
+  /* ---------------------------- Loading ---------------------------- */
 
   if (loading) {
     return (
       <main className="min-h-screen bg-background text-foreground">
-        <div className="mx-auto max-w-6xl px-4 py-12 space-y-8">
-          <Skeleton className="h-8 w-48" />
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="h-96 w-full rounded-3xl" />
-              <Skeleton className="h-40 w-full rounded-2xl" />
+        <div className="mx-auto max-w-6xl space-y-8 px-4 py-8">
+          <Skeleton className="h-5 w-40" />
+          <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+            <div className="space-y-8">
+              <Skeleton className="h-[320px] w-full rounded-3xl sm:h-[420px]" />
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-56 w-full rounded-3xl" />
             </div>
-            <div className="space-y-4">
-              <Skeleton className="h-80 w-full rounded-3xl" />
-            </div>
+            <Skeleton className="hidden h-[420px] w-full rounded-3xl lg:block" />
           </div>
         </div>
       </main>
     );
   }
 
-  if (error || !program) {
+  /* ----------------------------- Error ----------------------------- */
+
+  if (loadError || !program) {
     return (
-      <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
-        <Card className="max-w-md w-full rounded-3xl">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center space-y-4">
+      <main className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+        <Card className="w-full max-w-md rounded-3xl">
+          <CardContent className="flex flex-col items-center space-y-4 py-14 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <GraduationCap className="h-8 w-8" />
+              <GraduationCap className="h-8 w-8" aria-hidden="true" />
             </div>
-            <h3 className="font-bold text-xl">Program Not Found</h3>
+            <h1 className="text-xl font-bold">Program not found</h1>
             <p className="text-sm text-muted-foreground">
-              {error || "The program you're looking for doesn't exist."}
+              {loadError || "The program you're looking for doesn't exist."}
             </p>
-            <Link href="/#programs">
-              <Button className="mt-4 bg-blue-400 hover:bg-blue-500 text-white font-bold">
-                Browse All Programs
-              </Button>
+            <Link
+              href="/#programs"
+              className="mt-2 inline-flex h-10 items-center justify-center rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-blue-700"
+            >
+              Browse all programs
             </Link>
           </CardContent>
         </Card>
@@ -112,51 +202,17 @@ export default function CourseDetailPage() {
     );
   }
 
-  // Get specific learning outcomes based on program
-  const getLearningOutcomes = (programName: string) => {
-    const name = programName.toLowerCase();
-
-    if (name.includes('camera') || name.includes('photography')) {
-      return [
-        "Photography",
-        "Videography",
-        "Video editing",
-        "Photo editing",
-        "Studio lighting",
-        "Visual storytelling",
-      ];
-    } else if (name.includes('fashion') || name.includes('design')) {
-      return [
-        "Sketch",
-        "Color theory",
-        "Pattern making",
-        "Sewing",
-        "Garment construction",
-        "Fashion portfolio",
-      ];
-    } else if (name.includes('mobile') || name.includes('maintenance')) {
-      return [
-        "Hardware maintenance",
-        "Software maintenance",
-        "Customer handling",
-        "How to save money",
-        "Diagnostic techniques",
-        "Repair business setup",
-      ];
-    }
-
-    // Default outcomes
-    return [
-      "Practical hands-on training",
-      "Industry-standard techniques",
-      "Real-world project experience",
-      "Professional portfolio development",
-      "Career guidance & support",
-      "Certificate upon completion",
-    ];
-  };
+  /* ----------------------------- Derived ---------------------------- */
 
   const learningOutcomes = getLearningOutcomes(program.name);
+  const imageUrl = getProgramImageUrl(program.name);
+  const showImage = Boolean(imageUrl) && !imageFailed;
+
+  const fee = Number(program.monthly_fee);
+  const priceLabel = Number.isFinite(fee)
+    ? `${fee.toLocaleString()} ETB`
+    : "Contact us";
+  const duration = program.duration || "Self-paced";
 
   const handleEnroll = async () => {
     const token = getToken();
@@ -168,249 +224,269 @@ export default function CourseDetailPage() {
 
     try {
       setEnrolling(true);
-      setError("");
+      setEnrollError("");
 
-      // Create registration with DRAFT status
+      // Creates the registration with DRAFT status
       await createRegistration(programId, token);
 
-      // Navigate to payment page
       router.push("/dashboard/payment");
     } catch (err) {
-      setError(
+      setEnrollError(
         err instanceof Error ? err.message : "Failed to enroll in program."
       );
       setEnrolling(false);
     }
   };
 
+  const enrollButton = (
+    <Button
+      onClick={handleEnroll}
+      disabled={enrolling}
+      size="lg"
+      className="h-12 w-full gap-2 rounded-xl bg-blue-600 font-semibold text-white shadow-md shadow-blue-600/20 transition-colors hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+    >
+      {enrolling ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Enrolling...
+        </>
+      ) : (
+        <>
+          Enroll now
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </>
+      )}
+    </Button>
+  );
+
+  const errorNote = enrollError ? (
+    <div
+      role="alert"
+      className="flex items-start gap-2 rounded-xl border border-rose-200/70 bg-rose-50 p-3 text-sm font-medium text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-400"
+    >
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+      <span>{enrollError}</span>
+    </div>
+  ) : null;
+
+  /* ------------------------------ View ------------------------------ */
+
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-blue-400 selection:text-white">
-      {/* Header Navigation */}
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/40">
-        <div className="mx-auto max-w-6xl px-4 py-4">
+    <main className="min-h-screen bg-background pb-28 text-foreground selection:bg-blue-600 selection:text-white lg:pb-0">
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/85 backdrop-blur-lg">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5">
           <Link
             href="/#programs"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-medium transition-colors group"
+            className="group inline-flex items-center gap-2 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
-            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
-            Back to Programs
+            <ArrowLeft
+              className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+              aria-hidden="true"
+            />
+            All programs
           </Link>
+          <span className="hidden max-w-[50%] truncate text-sm font-semibold sm:block">
+            {program.name}
+          </span>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-6xl px-4 py-8 lg:py-10">
+        <div className="grid gap-10 lg:grid-cols-[1fr_380px] lg:gap-12">
+          {/* ------------------------ Main column ------------------------ */}
+          <div className="min-w-0 space-y-12">
+            {/* Hero */}
+            <section
+              aria-labelledby="program-title"
+              className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500"
+            >
+              <div className="relative isolate h-[320px] w-full overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-950 sm:h-[420px]">
+                {showImage ? (
+                  <Image
+                    src={imageUrl as string}
+                    alt=""
+                    fill
+                    priority
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 66vw"
+                    onError={() => setImageFailed(true)}
+                  />
+                ) : (
+                  <GraduationCap
+                    className="absolute right-8 top-8 h-40 w-40 text-white/10"
+                    aria-hidden="true"
+                  />
+                )}
+
+                {/* Legibility scrim for the title */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+                  <h1
+                    id="program-title"
+                    className="max-w-2xl text-balance text-3xl font-black leading-tight tracking-tight text-white sm:text-5xl"
+                  >
+                    {program.name}
+                  </h1>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium text-white/90">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock className="h-4 w-4" aria-hidden="true" />
+                      {duration}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Award className="h-4 w-4" aria-hidden="true" />
+                      Certificate on completion
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-6 max-w-prose text-lg leading-relaxed text-muted-foreground">
+                {program.description ||
+                  "Practical, career-focused training designed to build real-world skills."}
+              </p>
+            </section>
+
+            {/* What you'll learn */}
+            <section aria-labelledby="learn-title">
+              <h2
+                id="learn-title"
+                className="text-2xl font-bold tracking-tight"
+              >
+                What you&apos;ll learn
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Core skills you&apos;ll leave with
+              </p>
+
+              <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+                {learningOutcomes.map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                      <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span className="text-sm font-medium">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* How the course works: a real sequence, so numbered */}
+            <section aria-labelledby="structure-title">
+              <h2
+                id="structure-title"
+                className="text-2xl font-bold tracking-tight"
+              >
+                How the course works
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Three stages, from basics to real projects
+              </p>
+
+              <ol className="relative mt-8 space-y-8 before:absolute before:bottom-2 before:left-[17px] before:top-2 before:w-px before:bg-border">
+                {STAGES.map((stage, index) => (
+                  <li key={stage.title} className="relative pl-14">
+                    <span className="absolute left-0 top-0 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white ring-4 ring-background">
+                      {index + 1}
+                    </span>
+                    <h3 className="font-semibold leading-9">{stage.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {stage.text}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          </div>
+
+          {/* -------------------------- Sidebar -------------------------- */}
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <Card className="rounded-3xl border-border/60 shadow-lg shadow-blue-600/5">
+              <CardContent className="space-y-6 p-6">
+                <div>
+                  <p className="text-sm text-muted-foreground">Monthly fee</p>
+                  <p className="mt-1 text-4xl font-black tracking-tight">
+                    {priceLabel}
+                  </p>
+                </div>
+
+                <ul className="space-y-3 border-t border-border/50 pt-5 text-sm">
+                  <li className="flex items-center gap-3">
+                    <Clock
+                      className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      Duration:{" "}
+                      <span className="font-semibold">{duration}</span>
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Users
+                      className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400"
+                      aria-hidden="true"
+                    />
+                    <span className="font-semibold">Small class sizes</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Calendar
+                      className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400"
+                      aria-hidden="true"
+                    />
+                    <span className="font-semibold">Flexible schedules</span>
+                  </li>
+                </ul>
+
+                {/* Desktop-only: mobile uses the sticky bar below */}
+                <div className="hidden space-y-3 lg:block">
+                  {errorNote}
+                  {enrollButton}
+                  <p className="text-center text-xs text-muted-foreground">
+                    You&apos;ll confirm payment on the next step.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="px-2">
+              <h2 className="font-semibold">Why this program</h2>
+              <ul className="mt-3 space-y-2.5">
+                {PERKS.map((perk) => (
+                  <li
+                    key={perk}
+                    className="flex items-start gap-2.5 text-sm text-muted-foreground"
+                  >
+                    <CheckCircle2
+                      className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400"
+                      aria-hidden="true"
+                    />
+                    {perk}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-        {/* Hero Section */}
-        <div className="grid lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Program Image */}
-            <div className="relative h-[400px] sm:h-[500px] w-full overflow-hidden rounded-3xl bg-gradient-to-br from-blue-900/20 to-indigo-900/30">
-              {(() => {
-                const imageUrl = getProgramImageUrl(program.name);
-                return (
-                  <>
-                    {imageUrl ? (
-                      <Image
-                        src={imageUrl}
-                        alt={program.name}
-                        fill
-                        className="object-cover"
-                        priority
-                        sizes="(max-width: 1024px) 100vw, 66vw"
-                        onError={(e) => {
-                          const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon') as HTMLElement;
-                          if (fallback) fallback.style.display = 'flex';
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : null}
-                    <div className={`absolute inset-0 flex items-center justify-center fallback-icon ${imageUrl ? 'hidden' : 'flex'}`}>
-                      <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-blue-400/10 text-blue-400">
-                        <GraduationCap className="h-12 w-12" />
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                {/* Badge */}
-                <div className="absolute top-4 left-4">
-                  <Badge className="bg-blue-400 hover:bg-blue-500 text-white font-medium border-0 shadow-lg gap-1.5 px-4 py-2">
-                    <Sparkles className="h-4 w-4" />
-                    Active Course
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Program Details */}
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-foreground mb-4">
-                    {program.name}
-                  </h1>
-                  <p className="text-lg text-muted-foreground leading-relaxed">
-                    {program.description || "Practical, career-focused training program designed for real-world skill mastery."}
-                  </p>
-                </div>
-
-                {/* What You'll Learn */}
-                <Card className="rounded-3xl border-border/60 shadow-sm">
-                  <CardContent className="p-6 sm:p-8 space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-400/10 text-blue-400">
-                        <BookOpen className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold">What You&apos;ll Learn</h2>
-                        <p className="text-sm text-muted-foreground">Core skills and competencies</p>
-                      </div>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      {learningOutcomes.map((item, index) => (
-                        <div key={index} className="flex items-start gap-3">
-                          <CheckCircle2 className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-foreground">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Program Structure */}
-                <Card className="rounded-3xl border-border/60 shadow-sm">
-                  <CardContent className="p-6 sm:p-8 space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-400/10 text-blue-400">
-                        <TrendingUp className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold">Program Structure</h2>
-                        <p className="text-sm text-muted-foreground">How the course is organized</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-4 p-4 rounded-2xl bg-muted/50">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-400 text-white font-bold text-sm">
-                          1
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-foreground">Foundation Skills</h3>
-                          <p className="text-sm text-muted-foreground mt-1">Learn the fundamentals and core concepts</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-4 p-4 rounded-2xl bg-muted/50">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-400 text-white font-bold text-sm">
-                          2
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-foreground">Advanced Techniques</h3>
-                          <p className="text-sm text-muted-foreground mt-1">Master professional-level skills and methods</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-4 p-4 rounded-2xl bg-muted/50">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-400 text-white font-bold text-sm">
-                          3
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-foreground">Practical Projects</h3>
-                          <p className="text-sm text-muted-foreground mt-1">Apply skills through real-world projects</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+      {/* Mobile enroll bar */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 backdrop-blur-lg lg:hidden">
+        <div className="mx-auto max-w-6xl space-y-2">
+          {errorNote}
+          <div className="flex items-center gap-4">
+            <div className="shrink-0">
+              <p className="text-lg font-black leading-none">{priceLabel}</p>
+              <p className="mt-1 text-xs text-muted-foreground">per month</p>
             </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-              {/* Enrollment Card */}
-              <Card className="rounded-3xl border-border/60 shadow-lg shadow-blue-400/10">
-                <CardContent className="p-6 space-y-6">
-                  {error && (
-                    <div className="rounded-xl bg-rose-50 p-3 text-sm font-medium text-rose-700 border border-rose-200/60 dark:bg-rose-950/30 dark:border-rose-900 dark:text-rose-400">
-                      {error}
-                    </div>
-                  )}
-
-                  <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center gap-2 text-blue-400 font-bold text-sm uppercase tracking-wider">
-                      <Award className="h-4 w-4" />
-                      Certificate Program
-                    </div>
-                    <div className="text-4xl font-black text-foreground">
-                      {Number(program.monthly_fee).toLocaleString()} ETB
-                    </div>
-                    <p className="text-sm text-muted-foreground">Monthly fee</p>
-                  </div>
-
-                  <div className="space-y-3 pt-4 border-t border-border/40">
-                    <div className="flex items-center gap-3 text-sm">
-                      <Clock className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                      <span className="text-foreground font-medium">Duration: {program.duration || "Self-paced"}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Users className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                      <span className="text-foreground font-medium">Small class sizes</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Calendar className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                      <span className="text-foreground font-medium">Flexible schedules</span>
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={handleEnroll}
-                    disabled={enrolling}
-                    className="w-full bg-blue-400 hover:bg-blue-500 text-white font-bold h-12 gap-2 shadow-lg shadow-blue-400/25 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] rounded-xl"
-                  >
-                    {enrolling ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Enrolling...
-                      </>
-                    ) : (
-                      <>
-                        Enroll Now
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-
-                  <p className="text-xs text-center text-muted-foreground">
-                    Start your journey today with expert instructors
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Why Choose This Program */}
-              <Card className="rounded-3xl border-border/60 shadow-sm">
-                <CardContent className="p-6 space-y-4">
-                  <h3 className="font-bold text-lg">Why This Program?</h3>
-                  <ul className="space-y-3">
-                    {[
-                      "100% practical training",
-                      "Industry expert instructors",
-                      "Hands-on projects",
-                      "Career support",
-                      "Recognized certificate",
-                    ].map((item, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <CheckCircle2 className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
+            <div className="flex-1">{enrollButton}</div>
           </div>
         </div>
+      </div>
     </main>
   );
 }

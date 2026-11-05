@@ -55,6 +55,8 @@ interface Portfolio {
 const PRIMARY_BTN =
   "bg-gradient-to-r from-blue-600 to-sky-500 text-white shadow-lg shadow-blue-600/30 transition hover:brightness-110";
 
+const BIO_EXCERPT_LENGTH = 220;
+
 function getTechnologies(value?: string | null) {
   return (value || "")
     .split(/[,;|]/)
@@ -178,7 +180,6 @@ export default function PublicPortfolioPage() {
     setActiveTech("All");
   };
 
-  /* ---------------------------------- Loading ---------------------------------- */
   if (loading) {
     return (
       <main
@@ -189,12 +190,13 @@ export default function PublicPortfolioPage() {
       >
         <div className="animate-pulse motion-reduce:animate-none">
           <div className="bg-[#06142e] px-5 py-16 sm:px-8 sm:py-24">
-            <div className="mx-auto flex max-w-6xl flex-col gap-8 sm:flex-row sm:items-center">
-              <div className="h-36 w-36 rounded-3xl bg-white/10 sm:h-44 sm:w-44" />
-              <div className="flex-1 space-y-4">
-                <div className="h-5 w-40 rounded bg-white/10" />
-                <div className="h-12 w-2/3 rounded bg-white/10" />
-                <div className="h-4 w-1/2 rounded bg-white/10" />
+            <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_20rem] lg:items-center lg:gap-16">
+              <div className="aspect-[4/5] w-48 rounded-2xl bg-white/10 sm:w-56 lg:order-last lg:w-full" />
+              <div className="space-y-4">
+                <div className="h-4 w-48 rounded bg-white/10" />
+                <div className="h-16 w-3/4 rounded bg-white/10" />
+                <div className="h-5 w-1/2 rounded bg-white/10" />
+                <div className="h-4 w-full max-w-md rounded bg-white/10" />
               </div>
             </div>
           </div>
@@ -218,7 +220,6 @@ export default function PublicPortfolioPage() {
     );
   }
 
-  /* ----------------------------------- Error ----------------------------------- */
   if (error || !portfolio) {
     return (
       <main className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-b from-sky-50/70 to-slate-50 px-5 py-12 text-slate-900 dark:from-[#080f1e] dark:to-[#080f1e] dark:text-white">
@@ -271,6 +272,19 @@ export default function PublicPortfolioPage() {
   const filtersActive = query.trim() !== "" || activeTech !== "All";
   const showFeatured = !filtersActive && filteredProjects.length > 1;
 
+  // Hero content
+  const bioIsLong = biography.length > BIO_EXCERPT_LENGTH;
+  const bioExcerpt = bioIsLong ? `${biography.slice(0, BIO_EXCERPT_LENGTH).trimEnd()}…` : biography;
+  const topTech = technologies.slice(0, 5).map((tech) => tech.name);
+  // Hide stats that are zero so a new portfolio doesn't open with "0 projects"
+  const heroStats = (
+    [
+      ["Projects", projects.length],
+      ["Technologies", technologies.length],
+      ["Live links", liveCount],
+    ] as [string, number][]
+  ).filter(([, value]) => value > 0);
+
   return (
     <main className="min-h-[100dvh] bg-slate-50 text-slate-900 selection:bg-sky-200 selection:text-sky-950 dark:bg-[#080f1e] dark:text-slate-100 dark:selection:bg-sky-800 dark:selection:text-white">
       {/* ------------------------------- Header ------------------------------- */}
@@ -298,59 +312,92 @@ export default function PublicPortfolioPage() {
       </header>
 
       {/* --------------------------------- Hero -------------------------------- */}
-      <section className="relative isolate overflow-hidden bg-[#06142e] text-white">
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,rgba(14,165,233,0.3),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(37,99,235,0.25),transparent_50%)]"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-10 opacity-60 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-32 top-10 -z-10 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl"
-        />
-
-        <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-20 lg:py-24">
-          <div className="flex flex-col items-start gap-8 sm:flex-row sm:items-center sm:gap-10">
-            <div className="shrink-0 rounded-[1.75rem] bg-gradient-to-br from-sky-400 via-blue-500 to-blue-700 p-1 shadow-2xl shadow-black/40">
-              {portfolio.profile_photo_url && !imgError ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={portfolio.profile_photo_url}
-                  alt={`${studentName} profile`}
-                  onError={() => setImgError(true)}
-                  className="h-32 w-32 rounded-3xl bg-[#06142e] object-cover sm:h-44 sm:w-44"
+      <section
+        aria-labelledby="student-name"
+        className="relative isolate overflow-hidden border-b border-white/10 bg-[#06142e] text-white"
+      >
+        <div className="mx-auto max-w-6xl px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-[1fr_20rem] lg:gap-16">
+            {/* Portrait: first on phones, right column on desktop */}
+            <div className="justify-self-start lg:order-last lg:w-full lg:justify-self-end">
+              <div className="relative w-48 sm:w-56 lg:w-full">
+                {/* Offset outline gives the portrait depth without a glow */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl border-2 border-sky-400/50"
                 />
-              ) : (
-                <div className="flex h-32 w-32 items-center justify-center rounded-3xl bg-[#0b2150] text-4xl font-bold text-white sm:h-44 sm:w-44 sm:text-5xl">
-                  {initials || <UserRound className="h-14 w-14" aria-hidden />}
+                <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-[#0b2150] shadow-2xl shadow-black/40">
+                  {portfolio.profile_photo_url && !imgError ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={portfolio.profile_photo_url}
+                      alt={`${studentName} profile`}
+                      onError={() => setImgError(true)}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      {initials ? (
+                        <span className={`${serif.className} text-7xl font-bold text-sky-200 sm:text-8xl`}>
+                          {initials}
+                        </span>
+                      ) : (
+                        <UserRound className="h-20 w-20 text-sky-200" aria-hidden />
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
+
+                <div className="absolute -bottom-4 left-4 flex items-center gap-2 rounded-full bg-white py-1.5 pl-1.5 pr-4 text-xs font-semibold text-slate-900 shadow-lg shadow-black/20">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100">
+                    <Image src={icon} alt="" width={16} height={16} className="object-contain" />
+                  </span>
+                  Logos College student
+                </div>
+              </div>
             </div>
 
-            <div className="min-w-0">
-              <h1
-                className={`${serif.className} break-words text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl`}
-              >
-                {studentName}
-              </h1>
-              <p className="mt-3 max-w-2xl text-lg text-slate-300 sm:text-xl">
-                {portfolio.title || "Student Portfolio"}
-              </p>
-
+            {/* Introduction */}
+            <div className="min-w-0 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-700">
               {portfolio.program_name && (
-                <p className="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-slate-100 backdrop-blur-md">
-                  <BookOpen className="h-4 w-4 shrink-0 text-sky-300" aria-hidden />
+                <p className="flex items-center gap-2 text-sm font-medium text-sky-300">
+                  <BookOpen className="h-4 w-4 shrink-0" aria-hidden />
                   <span className="truncate">{portfolio.program_name}</span>
                 </p>
               )}
 
-              <div className="mt-7 flex flex-wrap items-center gap-3">
+              <h1
+                id="student-name"
+                className={`${serif.className} mt-4 break-words text-5xl font-bold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl`}
+              >
+                {studentName}
+              </h1>
+
+              <p className="mt-4 text-xl font-medium text-slate-200 sm:text-2xl">
+                {portfolio.title || "Student Portfolio"}
+              </p>
+
+              {hasBio && (
+                <p className="mt-6 max-w-xl whitespace-pre-line text-base leading-7 text-slate-300">
+                  {bioExcerpt}
+                  {bioIsLong && (
+                    <>
+                      {" "}
+                      <a
+                        href="#about"
+                        className="font-semibold text-sky-300 underline underline-offset-4 hover:text-sky-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
+                      >
+                        Read more
+                      </a>
+                    </>
+                  )}
+                </p>
+              )}
+
+              <div className="mt-8 flex flex-wrap items-center gap-3">
                 <a
                   href="#projects"
-                  className={`group inline-flex h-12 items-center gap-2 rounded-full px-6 text-sm font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40 ${PRIMARY_BTN}`}
+                  className="group inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-[#06142e] transition hover:bg-sky-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
                 >
                   View projects
                   <ArrowDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
@@ -358,8 +405,7 @@ export default function PublicPortfolioPage() {
                 <button
                   type="button"
                   onClick={() => void copyLink()}
-                  aria-live="polite"
-                  className="inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
+                  className="inline-flex h-12 items-center gap-2 rounded-full border border-white/25 px-6 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
                 >
                   {copied ? (
                     <Check className="h-4 w-4 text-emerald-300" aria-hidden />
@@ -368,22 +414,29 @@ export default function PublicPortfolioPage() {
                   )}
                   {copied ? "Link copied" : "Copy link"}
                 </button>
+                <span role="status" className="sr-only">
+                  {copied ? "Portfolio link copied to clipboard" : ""}
+                </span>
               </div>
+
+              {heroStats.length > 0 && (
+                <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4 border-t border-white/10 pt-6">
+                  {heroStats.map(([label, value]) => (
+                    <div key={label} className="flex flex-col-reverse">
+                      <dt className="text-sm text-slate-400">{label}</dt>
+                      <dd className={`${serif.className} text-3xl font-bold`}>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+
+              {topTech.length > 0 && (
+                <p className="mt-6 text-sm leading-6 text-slate-400">
+                  Works with <span className="text-slate-200">{topTech.join(", ")}</span>
+                </p>
+              )}
             </div>
           </div>
-
-          <dl className="mt-10 grid max-w-xl grid-cols-3 divide-x divide-white/10 rounded-2xl border border-white/10 bg-white/[0.06] shadow-lg shadow-black/10 backdrop-blur-md sm:mt-12">
-            {[
-              ["Projects", projects.length],
-              ["Technologies", technologies.length],
-              ["Live links", liveCount],
-            ].map(([label, value]) => (
-              <div key={label} className="px-4 py-4 sm:px-6">
-                <dt className="text-xs text-slate-400">{label}</dt>
-                <dd className="mt-1 text-2xl font-bold">{value}</dd>
-              </div>
-            ))}
-          </dl>
         </div>
       </section>
 
@@ -397,7 +450,10 @@ export default function PublicPortfolioPage() {
         {hasSidebar && (
           <aside className={`space-y-5 lg:sticky lg:top-24 ${hasBio ? "mb-10 lg:mb-0" : "hidden lg:block"}`}>
             {hasBio && (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0d1729]">
+              <section
+                id="about"
+                className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0d1729]"
+              >
                 <h2 className="flex items-center gap-2 text-base font-bold">
                   <span aria-hidden className="h-4 w-1 rounded-full bg-gradient-to-b from-sky-400 to-blue-600" />
                   About
