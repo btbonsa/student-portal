@@ -19,6 +19,14 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "");
+
+function resolveImageUrl(url: string | null | undefined) {
+  if (!url) return null;
+  if (url.startsWith("/")) return `${API_ORIGIN}${url}`;
+  return url;
+}
+
 export default function ProgramsPage() {
   const router = useRouter();
 
@@ -37,7 +45,7 @@ export default function ProgramsPage() {
       }
 
       try {
-        const data = await getPrograms();
+        const data = await getPrograms(token);
         setPrograms(data || []);
       } catch (err) {
         setError(
@@ -139,6 +147,7 @@ export default function ProgramsPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {programs.map((program) => {
               const isSelected = selecting === program.id;
+              const imageUrl = resolveImageUrl(program.image_url);
 
               return (
                 <Card
@@ -168,9 +177,9 @@ export default function ProgramsPage() {
                   <div className="flex flex-col h-full justify-between">
                     {/* Image Container with Title & Badges */}
                     <div className="relative h-56 w-full overflow-hidden bg-gradient-to-br from-blue-900/20 to-indigo-900/30">
-                      {program.fee ? (
+                      {imageUrl ? (
                         <Image
-                          src={program.fee}
+                          src={imageUrl}
                           alt={program.name}
                           fill
                           className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -184,7 +193,7 @@ export default function ProgramsPage() {
                       ) : null}
 
                       {/* Fallback Icon */}
-                      <div className={`absolute inset-0 flex items-center justify-center fallback-icon ${program.fee ? 'hidden' : 'flex'}`}>
+                      <div className={`absolute inset-0 flex items-center justify-center fallback-icon ${imageUrl ? 'hidden' : 'flex'}`}>
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-400/10 text-blue-400">
                           <GraduationCap className="h-8 w-8" />
                         </div>
