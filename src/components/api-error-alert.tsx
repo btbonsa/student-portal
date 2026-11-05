@@ -57,7 +57,7 @@ export function ApiErrorAlert({ missing = false }: { missing?: boolean }) {
           <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
             The{" "}
             <code className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-800 dark:bg-slate-800 dark:text-amber-200">
-              NEXT_PUBLIC_API_URL
+              API_URL
             </code>{" "}
             environment variable is not set. Add it in your deployment settings, then redeploy. Both HTTP and HTTPS URLs are supported.
           </p>

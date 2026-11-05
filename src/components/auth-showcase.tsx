@@ -15,8 +15,6 @@ interface AuthShowcaseProps {
   accent: string;
   subtitle: string;
   points: { icon: LucideIcon; text: string }[];
-  /** Small pill above the headline, e.g. "Student Portal" */
-  eyebrow?: string;
 }
 
 export function AuthShowcase({
@@ -24,7 +22,6 @@ export function AuthShowcase({
   accent,
   subtitle,
   points,
-  eyebrow = "Student Portal",
 }: AuthShowcaseProps) {
   return (
     <aside className="relative isolate hidden overflow-hidden bg-[#06142e] p-12 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between">
@@ -99,7 +96,6 @@ export function AuthShowcase({
       <div className="max-w-lg space-y-6">
         <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-sky-100 backdrop-blur-md">
           <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_2px_rgba(56,189,248,0.7)]" />
-          {eyebrow}
         </span>
 
         <h2
