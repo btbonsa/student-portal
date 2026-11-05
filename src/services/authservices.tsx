@@ -4,7 +4,6 @@ import {
 } from "@/types/auth";
 
 export interface RegisterData {
-  email: string;
   phone: string;
   password: string;
 }

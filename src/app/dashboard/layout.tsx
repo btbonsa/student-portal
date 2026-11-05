@@ -119,11 +119,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Brand Header inside Drawer */}
         <div className="flex h-16 items-center justify-between border-b px-6 bg-card/50">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-white shadow-md shadow-blue-400/20 font-bold">
-              <Image src={icon} alt="Logos College icon" width={24} height={24} />
-            </div>
+              <Image src={icon} alt="Logos College icon" width={30} height={30} />
+            
             <div>
-              <span className="text-sm font-bold tracking-tight block leading-none">
+              <span className="text-sm font-bold tracking-tight block leading-none text-center mt-4">
                 Student <span className="text-blue-400">Portal</span>
               </span>
               <span className="text-[10px] text-muted-foreground font-medium">Workspace</span>
@@ -202,7 +201,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="flex items-center gap-3 rounded-xl px-3 py-1.5 hover:bg-muted/80 transition-colors border border-transparent hover:border-border"
               >
-                <Avatar photoUrl={profile?.profile_photo_url || null} size={9} initials={getInitials()} />
+                <Avatar photoUrl={profile?.profile_photo_url || null} size={8} initials={getInitials()} />
                 <div className="text-left">
                   <p className="text-xs font-semibold leading-tight">
                     {profile?.first_name} {profile?.last_name}

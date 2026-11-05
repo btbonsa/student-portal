@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: validatedData.email,
         phone: validatedData.phone,
         password: validatedData.password,
       }),

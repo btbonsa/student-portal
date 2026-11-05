@@ -174,7 +174,6 @@ export const passwordSchema = strongPasswordSchema.refine(
  * Complete registration schema (includes confirm_password for frontend)
  */
 export const registerSchema = z.object({
-  email: z.string().email("Invalid email address"),
   phone: z
     .string()
     .min(1, "Phone number is required")
@@ -208,7 +207,6 @@ export const registerSchema = z.object({
  * Backend registration schema (without confirm_password)
  */
 export const registerBackendSchema = z.object({
-  email: z.string().email("Invalid email address"),
   phone: z
     .string()
     .min(1, "Phone number is required")
