@@ -1,30 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getToken } from "@/lib/auth";
+import { getProgramImageUrl } from "@/lib/program-image";
 import { getPrograms, Program } from "../../../services/programservices";
 import { createRegistration } from "../../../services/registrationservices";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  AlertCircle,
   ArrowLeft,
-  GraduationCap,
-  Clock,
-  DollarSign,
-  Loader2,
-  Sparkles,
+  ArrowRight,
   ArrowUpRight,
+  Banknote,
+  Clock,
+  GraduationCap,
+  Loader2,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react";
 
-const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "");
+function formatFee(value: unknown) {
+  const fee = Number(value);
+  return Number.isFinite(fee) && fee > 0 ? `${fee.toLocaleString()} ETB` : null;
+}
 
-function resolveImageUrl(url: string | null | undefined) {
-  if (!url) return null;
-  if (url.startsWith("/")) return `${API_ORIGIN}${url}`;
-  return url;
+function ProgramImage({ src, alt }: { src: string | null | undefined; alt: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 text-sky-300 ring-1 ring-white/15">
+          <GraduationCap className="h-8 w-8" aria-hidden />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      className="object-cover transition-transform duration-700 group-hover:scale-110 motion-reduce:transition-none"
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export default function ProgramsPage() {
@@ -35,29 +61,29 @@ export default function ProgramsPage() {
   const [selecting, setSelecting] = useState<number | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const loadPrograms = async () => {
-      const token = getToken();
+  const loadPrograms = useCallback(async () => {
+    const token = getToken();
 
-      if (!token) {
-        router.replace("/login");
-        return;
-      }
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
 
-      try {
-        const data = await getPrograms(token);
-        setPrograms(data || []);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load programs."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPrograms();
+    try {
+      setError("");
+      setLoading(true);
+      const data = await getPrograms(token);
+      setPrograms(data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load programs.");
+    } finally {
+      setLoading(false);
+    }
   }, [router]);
+
+  useEffect(() => {
+    void loadPrograms();
+  }, [loadPrograms]);
 
   const handleSelectProgram = async (programId: number) => {
     if (selecting !== null) return;
@@ -75,25 +101,31 @@ export default function ProgramsPage() {
 
       // Create registration with DRAFT status
       await createRegistration(programId, token);
-      
+
       // Navigate to payment page
       router.push("/dashboard/payment");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to select program."
-      );
+      setError(err instanceof Error ? err.message : "Failed to select program.");
       setSelecting(null);
     }
   };
 
+  /* ------------------------------- Loading ------------------------------- */
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
-        <div className="w-full max-w-6xl space-y-6">
-          <Skeleton className="h-8 w-48" />
+      <main
+        role="status"
+        aria-busy="true"
+        aria-label="Loading programs"
+        className="min-h-[100dvh] bg-gradient-to-b from-sky-50/70 via-background to-background p-4 text-foreground sm:p-6 dark:from-slate-950"
+      >
+        <div className="mx-auto w-full max-w-6xl space-y-6 py-6">
+          <Skeleton className="h-6 w-36" />
+          <Skeleton className="h-10 w-72 max-w-full" />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-80 w-full rounded-3xl" />
+              <Skeleton key={i} className="h-96 w-full rounded-3xl" />
             ))}
           </div>
         </div>
@@ -101,158 +133,190 @@ export default function ProgramsPage() {
     );
   }
 
+  /* -------------------------------- Page -------------------------------- */
+
   return (
-    <main className="min-h-screen bg-background text-foreground relative selection:bg-blue-400 selection:text-white">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:py-12 space-y-8">
-        
+    <main className="relative min-h-[100dvh] bg-gradient-to-b from-sky-50/70 via-background to-background text-foreground selection:bg-sky-500 selection:text-white dark:from-slate-950">
+      <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700 sm:py-12">
         {/* Header */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <button
+            type="button"
             onClick={() => router.push("/dashboard")}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-medium transition-colors group cursor-pointer"
+            className="group inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-500"
           >
             <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
             Back to Dashboard
           </button>
 
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">
-              Choose Your Program
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Select any program card below to enroll and proceed to registration.
-            </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+                Choose Your{" "}
+                <span className="bg-gradient-to-r from-sky-500 to-blue-700 bg-clip-text text-transparent">
+                  Program
+                </span>
+              </h1>
+              <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+                Pick the certificate program you want. You will continue to
+                payment right after.
+              </p>
+            </div>
+            {programs.length > 0 && (
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3.5 py-1.5 text-xs font-semibold text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300">
+                <GraduationCap className="h-4 w-4" aria-hidden />
+                {programs.length} {programs.length === 1 ? "program" : "programs"} open
+              </span>
+            )}
           </div>
         </div>
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400">
-            {error}
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700 animate-in fade-in slide-in-from-top-2 duration-300 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <span className="flex-1">{error}</span>
+            {programs.length === 0 && (
+              <button
+                type="button"
+                onClick={() => void loadPrograms()}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold underline-offset-4 hover:underline"
+              >
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                Retry
+              </button>
+            )}
           </div>
         )}
 
         {programs.length === 0 ? (
-          <Card className="border-dashed shadow-none rounded-3xl">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center space-y-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <GraduationCap className="h-6 w-6" />
+          <Card className="rounded-3xl border-dashed shadow-none">
+            <CardContent className="flex flex-col items-center justify-center space-y-3 py-16 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                <GraduationCap className="h-7 w-7" aria-hidden />
               </div>
-              <h3 className="font-semibold text-base">No Programs Available</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                There are currently no active certificate programs open for enrollment. Please check back later.
+              <h3 className="text-base font-semibold">No Programs Available</h3>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                There are currently no active certificate programs open for
+                enrollment. Please check back later.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <ul
+            aria-label="Available programs"
+            aria-busy={selecting !== null}
+            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {programs.map((program) => {
               const isSelected = selecting === program.id;
-              const imageUrl = resolveImageUrl(program.image_url);
+              const isDisabled = selecting !== null && !isSelected;
+              const imageUrl = getProgramImageUrl(program.name);
+              const fee = formatFee(program.monthly_fee);
 
               return (
-                <Card
-                  key={program.id}
-                  onClick={() => handleSelectProgram(program.id)}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Enroll in ${program.name}`}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleSelectProgram(program.id);
-                    }
-                  }}
-                  className={`group relative flex flex-col justify-between cursor-pointer overflow-hidden rounded-3xl border-border/60 bg-card shadow-md transition-all duration-500 hover:-translate-y-2 hover:border-blue-400/60 hover:shadow-2xl hover:shadow-blue-400/15 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                    isSelected ? "ring-2 ring-blue-400 border-transparent shadow-xl" : ""
-                  }`}
-                >
-                  {/* Loading overlay */}
-                  {isSelected && (
-                    <div className="absolute inset-0 bg-background/85 backdrop-blur-sm z-30 flex flex-col items-center justify-center space-y-3 animate-in fade-in duration-200">
-                      <Loader2 className="h-9 w-9 animate-spin text-blue-400" />
-                      <p className="text-sm font-bold tracking-wide">Enrolling you in program...</p>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col h-full justify-between">
-                    {/* Image Container with Title & Badges */}
-                    <div className="relative h-56 w-full overflow-hidden bg-gradient-to-br from-blue-900/20 to-indigo-900/30">
-                      {imageUrl ? (
-                        <Image
-                          src={imageUrl}
-                          alt={program.name}
-                          fill
-                          className="object-cover transition-transform duration-700 group-hover:scale-110"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          onError={(e) => {
-                            const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon') as HTMLElement;
-                            if (fallback) fallback.style.display = 'flex';
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : null}
-
-                      {/* Fallback Icon */}
-                      <div className={`absolute inset-0 flex items-center justify-center fallback-icon ${imageUrl ? 'hidden' : 'flex'}`}>
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-400/10 text-blue-400">
-                          <GraduationCap className="h-8 w-8" />
-                        </div>
+                <li key={program.id} className="flex">
+                  {/* The title button stretches over the card (after:absolute): one tab stop, whole card tappable. */}
+                  <Card
+                    className={`group relative flex w-full flex-col overflow-hidden rounded-3xl border-border/60 bg-card shadow-md transition-all duration-500 focus-within:ring-2 focus-within:ring-sky-500 focus-within:ring-offset-2 motion-reduce:transition-none ${
+                      isSelected
+                        ? "border-transparent shadow-xl ring-2 ring-sky-500"
+                        : isDisabled
+                        ? "pointer-events-none opacity-60"
+                        : "hover:-translate-y-2 hover:border-sky-400/60 hover:shadow-2xl hover:shadow-sky-500/15 motion-reduce:hover:translate-y-0"
+                    }`}
+                  >
+                    {/* Loading overlay */}
+                    {isSelected && (
+                      <div
+                        role="status"
+                        className="absolute inset-0 z-30 flex flex-col items-center justify-center space-y-3 bg-background/85 backdrop-blur-sm animate-in fade-in duration-200"
+                      >
+                        <Loader2 className="h-9 w-9 animate-spin text-sky-500" aria-hidden />
+                        <p className="text-sm font-bold tracking-wide">
+                          Enrolling you in program...
+                        </p>
                       </div>
+                    )}
 
-                      {/* Gradient Overlay for Text Visibility */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
+                    {/* Image */}
+                    <div className="relative h-52 w-full overflow-hidden bg-gradient-to-br from-[#06142e] to-blue-900 sm:h-56">
+                      <ProgramImage src={imageUrl} alt="" />
 
-                      {/* Active Status Badge & Quick Enroll Arrow */}
-                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-                        <Badge className="bg-black/40 backdrop-blur-md text-white font-medium border border-white/10 shadow-sm gap-1">
-                          <Sparkles className="h-3 w-3 text-blue-400" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#06142e]/90 via-[#06142e]/30 to-[#06142e]/10" />
+
+                      {/* Top row */}
+                      <div className="absolute left-3 right-3 top-3 z-10 flex items-center justify-between">
+                        <Badge className="gap-1 border border-white/15 bg-black/40 font-medium text-white shadow-sm backdrop-blur-md">
+                          <Sparkles className="h-3 w-3 text-sky-300" aria-hidden />
                           Active Course
                         </Badge>
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white transition-all duration-300 group-hover:bg-blue-400 group-hover:scale-110">
-                          <ArrowUpRight className="h-4 w-4" />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:bg-sky-500">
+                          <ArrowUpRight className="h-4 w-4" aria-hidden />
                         </div>
                       </div>
 
-                      {/* Program Title directly over bottom of the image */}
-                      <div className="absolute bottom-3 left-4 right-4 z-10">
-                        <h3 className="text-lg font-bold text-white tracking-tight line-clamp-2 drop-shadow-sm group-hover:text-blue-300 transition-colors">
-                          {program.name}
-                        </h3>
-                      </div>
-
-                      {/* Animated Hover/Touch Details (Duration & Fee) */}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/90 to-transparent p-4 pt-8 text-white z-20 translate-y-full group-hover:translate-y-0 group-focus:translate-y-0 transition-transform duration-300 ease-out flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
-                          <Clock className="h-3.5 w-3.5 text-blue-400" />
-                          <span>{program.duration || "Self-paced"}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm font-bold text-emerald-400">
-                          <DollarSign className="h-4 w-4" />
-                          <span>{Number(program.monthly_fee).toLocaleString()} ETB / mo</span>
-                        </div>
+                      {/* Title + duration (always visible, works on touch) */}
+                      <div className="absolute inset-x-4 bottom-4 z-10 space-y-2">
+                        <h2 className="line-clamp-2 text-lg font-bold tracking-tight text-white drop-shadow-sm transition-colors group-hover:text-sky-200">
+                          <button
+                            type="button"
+                            onClick={() => void handleSelectProgram(program.id)}
+                            disabled={selecting !== null}
+                            aria-label={`Enroll in ${program.name}`}
+                            className="cursor-pointer text-left after:absolute after:inset-0 after:z-20 after:content-[''] focus:outline-none disabled:cursor-wait"
+                          >
+                            {program.name}
+                          </button>
+                        </h2>
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-100 backdrop-blur-md">
+                          <Clock className="h-3.5 w-3.5 text-sky-300" aria-hidden />
+                          {program.duration || "Self-paced"}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Description Below Card Image */}
-                    <CardContent className="p-5 flex-1 flex flex-col justify-between">
-                      <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                    {/* Body */}
+                    <CardContent className="flex flex-1 flex-col justify-between gap-4 p-5">
+                      <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                         {program.description ||
                           "Practical, career-focused training program designed for real-world skill mastery."}
                       </p>
 
-                      {/* Tap/Click visual hint */}
-                      <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground group-hover:text-blue-400 font-medium transition-colors">
-                        <span>Tap anywhere to enroll</span>
-                        <span className="font-bold">→</span>
+                      <div className="space-y-3">
+                        {fee && (
+                          <div className="flex items-center gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-500/5 p-3 dark:border-emerald-900/40">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              <Banknote className="h-5 w-5" aria-hidden />
+                            </span>
+                            <div className="leading-tight">
+                              <p className="text-base font-black text-emerald-700 dark:text-emerald-400">
+                                {fee}
+                              </p>
+                              <p className="text-[11px] font-medium text-muted-foreground">
+                                per month
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div
+                          aria-hidden
+                          className="flex items-center justify-between border-t border-border/40 pt-3 text-xs font-bold text-muted-foreground transition-colors group-hover:text-sky-600 dark:group-hover:text-sky-400"
+                        >
+                          <span>Enroll in this program</span>
+                          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </div>
                       </div>
                     </CardContent>
-                  </div>
-                </Card>
+                  </Card>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
-
       </div>
     </main>
   );

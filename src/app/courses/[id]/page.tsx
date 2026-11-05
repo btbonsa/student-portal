@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getPrograms, Program } from "@/services/programservices";
 import { createRegistration } from "@/services/registrationservices";
 import { getToken } from "@/lib/auth";
+import { getProgramImageUrl } from "@/lib/program-image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,14 +26,6 @@ import {
   Award,
   ArrowRight,
 } from "lucide-react";
-
-const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/api\/?$/, "");
-
-function resolveImageUrl(url: string | null | undefined) {
-  if (!url) return null;
-  if (url.startsWith("/")) return `${API_ORIGIN}${url}`;
-  return url;
-}
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -213,7 +206,7 @@ export default function CourseDetailPage() {
             {/* Program Image */}
             <div className="relative h-[400px] sm:h-[500px] w-full overflow-hidden rounded-3xl bg-gradient-to-br from-blue-900/20 to-indigo-900/30">
               {(() => {
-                const imageUrl = resolveImageUrl(program.image_url);
+                const imageUrl = getProgramImageUrl(program.name);
                 return (
                   <>
                     {imageUrl ? (
