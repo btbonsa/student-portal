@@ -1,6 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -11,13 +21,19 @@ import {
   BadgeCheck,
   BookOpen,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Code2,
   FileText,
   FolderKanban,
+  GraduationCap,
+  Layers,
   Link2,
   Search,
+  Sparkles,
   UserRound,
   X,
+  type LucideIcon,
 } from "lucide-react";
 
 import icon from "../../../../public/icons/icon.png";
@@ -60,10 +76,246 @@ const PRIMARY_BTN =
 const BIO_EXCERPT_LENGTH = 240;
 
 const NAV_LINKS = [
-  { href: "#projects", label: "Projects" },
-  { href: "#technologies", label: "Technologies" },
-  { href: "#transcripts", label: "Transcripts" },
+  { href: "#projects", id: "projects", label: "Projects" },
+  { href: "#technologies", id: "technologies", label: "Technologies" },
+  { href: "#transcripts", id: "transcripts", label: "Transcripts" },
 ];
+
+// "top" is the hero; it clears the active nav item when you scroll back up.
+const SECTION_IDS = ["top", "projects", "technologies", "transcripts"];
+
+/* -------------------------------------------------------------------------- */
+/*                         Motion: styles and small hooks                     */
+/* -------------------------------------------------------------------------- */
+
+// All keyframes live here so the page needs no Tailwind config changes.
+// Every animation is wrapped in `prefers-reduced-motion: no-preference`,
+// so people who ask for less motion get the final, static state.
+const PAGE_CSS = `
+@keyframes ps-rise { from { transform: translateY(105%); } to { transform: translateY(0); } }
+@keyframes ps-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes ps-pop { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
+@keyframes ps-spin { to { transform: rotate(360deg); } }
+@keyframes ps-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes ps-drift-a { 0%, 100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(48px,36px,0) scale(1.14); } }
+@keyframes ps-drift-b { 0%, 100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-56px,-30px,0) scale(1.1); } }
+@keyframes ps-marquee { to { transform: translateX(-50%); } }
+@keyframes ps-shimmer { to { transform: translateX(100%); } }
+@keyframes ps-live { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,.55); } 100% { box-shadow: 0 0 0 8px rgba(16,185,129,0); } }
+@keyframes ps-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ps-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ps-sheet-in { from { opacity: 0; transform: translateY(28px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes ps-sheet-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(20px) scale(.98); } }
+
+.ps-skeleton { position: relative; overflow: hidden; }
+.ps-skeleton::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(148,163,184,.28), transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+
+  .ps-rise { animation: ps-rise .95s cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 0ms); }
+  .ps-fade-up { animation: ps-fade-up .8s cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 0ms); }
+  .ps-pop { animation: ps-pop .9s cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 0ms); }
+  .ps-spin { animation: ps-spin 8s linear infinite; }
+  .ps-float { animation: ps-float 5s ease-in-out infinite; }
+  .ps-blob-a { animation: ps-drift-a 18s ease-in-out infinite; }
+  .ps-blob-b { animation: ps-drift-b 22s ease-in-out infinite; }
+  .ps-marquee-track { animation: ps-marquee 45s linear infinite; }
+  .ps-marquee:hover .ps-marquee-track { animation-play-state: paused; }
+  .ps-skeleton::after { animation: ps-shimmer 1.6s ease-in-out infinite; }
+  .ps-live-dot { animation: ps-live 1.8s ease-out infinite; }
+  .ps-swap { animation: ps-fade-in .35s ease both; }
+
+  .ps-backdrop-in { animation: ps-fade-in .2s ease both; }
+  .ps-backdrop-out { animation: ps-fade-out .18s ease both; }
+  .ps-panel-in { animation: ps-sheet-in .38s cubic-bezier(.2,.8,.2,1) both; }
+  .ps-panel-out { animation: ps-sheet-out .18s ease-in both; }
+
+  .ps-reveal { transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); }
+  .ps-reveal[data-in="false"] { opacity: 0; transform: translateY(22px) scale(.985); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-bar-fill { transition: none !important; }
+}
+`;
+
+function PageStyles() {
+  return <style dangerouslySetInnerHTML={{ __html: PAGE_CSS }} />;
+}
+
+const delay = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
+
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** Becomes true once the element scrolls into view (and stays true). */
+function useInView<T extends Element>(rootMargin = "0px 0px -6% 0px") {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.12, rootMargin }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [rootMargin]);
+
+  return [ref, inView] as const;
+}
+
+/** True once the page has scrolled past `threshold` pixels. */
+function useScrolledPast(threshold: number) {
+  const [past, setPast] = useState(false);
+  useEffect(() => {
+    const update = () => setPast(window.scrollY > threshold);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, [threshold]);
+  return past;
+}
+
+/** Id of the section currently crossing the middle of the viewport. */
+function useActiveSection(ids: string[], enabled: boolean) {
+  const [active, setActive] = useState("");
+  const key = ids.join("|");
+
+  useEffect(() => {
+    if (!enabled || typeof IntersectionObserver === "undefined") return;
+    const nodes = key
+      .split("|")
+      .map((id) => document.getElementById(id))
+      .filter((node): node is HTMLElement => Boolean(node));
+    if (nodes.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setActive(entry.target.id === "top" ? "" : entry.target.id);
+        });
+      },
+      { rootMargin: "-35% 0px -55% 0px" }
+    );
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [key, enabled]);
+
+  return active;
+}
+
+/** Fades and lifts its children in when they scroll into view. */
+function Reveal({
+  children,
+  delay: delayMs = 0,
+  className = "",
+}: {
+  children: ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const [ref, inView] = useInView<HTMLDivElement>();
+  return (
+    <div
+      ref={ref}
+      data-in={inView ? "true" : "false"}
+      className={`ps-reveal ${className}`}
+      style={{ transitionDelay: `${delayMs}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Counts up to `value` the first time it is visible. */
+function CountUp({ value }: { value: number }) {
+  const [ref, inView] = useInView<HTMLSpanElement>();
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    if (prefersReducedMotion()) {
+      setDisplay(value);
+      return;
+    }
+    let frame = 0;
+    const start = performance.now();
+    const duration = 1100;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      setDisplay(Math.round(value * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [inView, value]);
+
+  return (
+    <span ref={ref}>
+      <span aria-hidden>{display}</span>
+      <span className="sr-only">{value}</span>
+    </span>
+  );
+}
+
+/** Thin gradient bar at the top of the screen showing reading progress. */
+function ScrollProgress() {
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const bar = barRef.current;
+      if (!bar) return;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      bar.style.transform = `scaleX(${progress})`;
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[3px]">
+      <div
+        ref={barRef}
+        className="h-full origin-left bg-gradient-to-r from-sky-400 via-blue-500 to-sky-300"
+        style={{ transform: "scaleX(0)" }}
+      />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   Helpers                                  */
+/* -------------------------------------------------------------------------- */
 
 function getTechnologies(value?: string | null) {
   return (value || "")
@@ -89,6 +341,10 @@ function isLinkableUrl(value?: string | null) {
   return isExternalUrl(value);
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                    Page                                    */
+/* -------------------------------------------------------------------------- */
+
 export default function PublicPortfolioPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
@@ -103,6 +359,10 @@ export default function PublicPortfolioPage() {
   const [bioOpen, setBioOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scrolled = useScrolledPast(24);
+  const showTop = useScrolledPast(700);
+  const activeSection = useActiveSection(SECTION_IDS, Boolean(portfolio));
 
   const loadPortfolio = useCallback(
     async (signal?: AbortSignal) => {
@@ -178,6 +438,13 @@ export default function PublicPortfolioPage() {
     });
   }, [projects, query, activeTech]);
 
+  // A repeating strip of technology names for the hero (decorative)
+  const marqueeItems = useMemo(() => {
+    if (technologies.length === 0) return [];
+    const repeats = Math.max(1, Math.ceil(8 / technologies.length));
+    return Array.from({ length: repeats }, () => technologies).flat();
+  }, [technologies]);
+
   const closeModal = useCallback(() => setSelected(null), []);
 
   const copyLink = useCallback(async () => {
@@ -211,34 +478,33 @@ export default function PublicPortfolioPage() {
         aria-label="Loading portfolio"
         className="min-h-[100dvh] bg-white dark:bg-[#080f1e]"
       >
+        <PageStyles />
         <div className="h-16 bg-[#06142e]" />
-        <div className="animate-pulse motion-reduce:animate-none">
-          <div className="bg-sky-50/70 dark:bg-white/[0.03]">
-            <div className="mx-auto flex max-w-5xl flex-col items-center gap-10 px-5 py-14 sm:px-8 md:flex-row md:gap-16 md:py-20">
-              <div className="h-40 w-40 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800 sm:h-52 sm:w-52" />
-              <div className="w-full max-w-lg space-y-4">
-                <div className="h-7 w-48 rounded-full bg-slate-200 dark:bg-slate-800" />
-                <div className="h-14 w-3/4 rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="h-5 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="h-24 w-full rounded-2xl bg-slate-200 dark:bg-slate-800" />
-              </div>
+        <div className="bg-[#06142e]">
+          <div className="mx-auto flex max-w-5xl flex-col items-center gap-10 px-5 pb-24 pt-14 sm:px-8 md:flex-row md:gap-16 md:pt-20">
+            <div className="ps-skeleton h-40 w-40 shrink-0 rounded-full bg-white/10 sm:h-52 sm:w-52" />
+            <div className="w-full max-w-lg space-y-4">
+              <div className="ps-skeleton h-7 w-48 rounded-full bg-white/10" />
+              <div className="ps-skeleton h-14 w-3/4 rounded-lg bg-white/10" />
+              <div className="ps-skeleton h-5 w-1/3 rounded bg-white/10" />
+              <div className="ps-skeleton h-24 w-full rounded-2xl bg-white/10" />
             </div>
           </div>
-          <div className="mx-auto mt-14 grid max-w-5xl gap-6 px-5 sm:grid-cols-2 sm:px-8 lg:grid-cols-3">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#0d1729]"
-              >
-                <div className="aspect-[16/11] bg-slate-200 dark:bg-slate-800" />
-                <div className="space-y-3 p-5">
-                  <div className="h-4 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-3 w-full rounded bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-3 w-4/5 rounded bg-slate-200 dark:bg-slate-800" />
-                </div>
+        </div>
+        <div className="mx-auto mt-16 grid max-w-5xl gap-6 px-5 sm:grid-cols-2 sm:px-8 lg:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#0d1729]"
+            >
+              <div className="ps-skeleton aspect-[16/11] bg-slate-200 dark:bg-slate-800" />
+              <div className="space-y-3 p-5">
+                <div className="ps-skeleton h-4 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="ps-skeleton h-3 w-full rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="ps-skeleton h-3 w-4/5 rounded bg-slate-200 dark:bg-slate-800" />
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </main>
     );
@@ -248,11 +514,12 @@ export default function PublicPortfolioPage() {
   if (error || !portfolio) {
     return (
       <main className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-b from-sky-50/70 to-slate-50 px-5 py-12 text-slate-900 dark:from-[#080f1e] dark:to-[#080f1e] dark:text-white">
+        <PageStyles />
         <div
           role="alert"
-          className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-900/5 animate-in fade-in zoom-in-95 duration-500 dark:border-white/10 dark:bg-[#0d1729] sm:p-12"
+          className="ps-pop w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-900/5 dark:border-white/10 dark:bg-[#0d1729] sm:p-12"
         >
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
+          <div className="ps-float mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
             <FolderKanban className="h-7 w-7" aria-hidden />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Portfolio unavailable</h1>
@@ -282,10 +549,9 @@ export default function PublicPortfolioPage() {
     portfolio.full_name ||
     `${portfolio.first_name || ""} ${portfolio.last_name || ""}`.trim() ||
     "Logos College Student";
+  const nameWords = studentName.split(/\s+/).filter(Boolean);
   const biography = portfolio.bio_override || portfolio.bio || "";
-  const initials = studentName
-    .split(/\s+/)
-    .filter(Boolean)
+  const initials = nameWords
     .slice(0, 2)
     .map((part) => part[0])
     .join("")
@@ -296,20 +562,28 @@ export default function PublicPortfolioPage() {
     bioIsLong && !bioOpen ? `${biography.slice(0, BIO_EXCERPT_LENGTH).trimEnd()}…` : biography;
   const showSearch = projects.length > 3;
   const filtersActive = query.trim() !== "" || activeTech !== "All";
+  const featuredEnabled = !filtersActive && filteredProjects.length >= 4;
 
   // Hide zero stats so a brand-new portfolio doesn't open with "0 projects"
   const stats = (
     [
-      ["Projects", projects.length],
-      ["Technologies", technologies.length],
-      ["Transcripts", transcripts.length],
-    ] as [string, number][]
-  ).filter(([, value]) => value > 0);
+      { label: "Projects", value: projects.length, Icon: FolderKanban },
+      { label: "Technologies", value: technologies.length, Icon: Layers },
+      { label: "Transcripts", value: transcripts.length, Icon: GraduationCap },
+    ] as { label: string; value: number; Icon: LucideIcon }[]
+  ).filter((stat) => stat.value > 0);
 
   return (
     <main className="min-h-[100dvh] bg-white text-slate-900 selection:bg-sky-200 selection:text-sky-950 dark:bg-[#080f1e] dark:text-slate-100 dark:selection:bg-sky-800 dark:selection:text-white">
+      <PageStyles />
+      <ScrollProgress />
+
       {/* ------------------------------- Header ------------------------------- */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#06142e]/90 text-white backdrop-blur-xl">
+      <header
+        className={`sticky top-0 z-40 border-b border-white/10 text-white backdrop-blur-xl transition-[background-color,box-shadow] duration-300 ${
+          scrolled ? "bg-[#06142e]/85 shadow-lg shadow-black/25" : "bg-[#06142e]"
+        }`}
+      >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
           <Link
             href="/"
@@ -326,15 +600,27 @@ export default function PublicPortfolioPage() {
           </Link>
 
           <nav aria-label="Portfolio sections" className="hidden items-center gap-1 md:flex">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
-              >
-                {link.label}
-              </a>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const isActive = activeSection === link.id;
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isActive ? "location" : undefined}
+                  className={`relative rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40 ${
+                    isActive ? "text-white" : "text-slate-300"
+                  }`}
+                >
+                  {link.label}
+                  <span
+                    aria-hidden
+                    className={`absolute inset-x-3 bottom-0.5 h-0.5 origin-left rounded-full bg-gradient-to-r from-sky-400 to-blue-500 transition-transform duration-300 ${
+                      isActive ? "scale-x-100" : "scale-x-0"
+                    }`}
+                  />
+                </a>
+              );
+            })}
           </nav>
 
           <button
@@ -358,41 +644,39 @@ export default function PublicPortfolioPage() {
 
       {/* --------------------------------- Hero -------------------------------- */}
       <section
+        id="top"
         aria-labelledby="student-name"
-        className="relative isolate overflow-hidden border-b border-slate-200 bg-gradient-to-b from-sky-50 via-white to-white dark:border-white/10 dark:from-[#0b1a38] dark:via-[#080f1e] dark:to-[#080f1e]"
+        className="relative isolate overflow-hidden bg-[#06142e] pb-16 text-white"
       >
-        {/* Decorative dot grid + glow */}
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-10 opacity-60 dark:hidden"
-          style={{
-            backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 1px)",
-            backgroundSize: "22px 22px",
-            maskImage: "linear-gradient(to bottom, black, transparent 85%)",
-            WebkitMaskImage: "linear-gradient(to bottom, black, transparent 85%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-10 hidden opacity-[0.08] dark:block"
-          style={{
-            backgroundImage: "radial-gradient(#fff 1px, transparent 1px)",
-            backgroundSize: "22px 22px",
-            maskImage: "linear-gradient(to bottom, black, transparent 85%)",
-            WebkitMaskImage: "linear-gradient(to bottom, black, transparent 85%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-32 left-1/2 -z-10 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-sky-300/30 blur-3xl dark:bg-blue-500/20"
-        />
+        {/* Drifting light, plus a faded dot grid */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          <div className="ps-blob-a absolute -left-32 -top-32 h-[30rem] w-[30rem] rounded-full bg-blue-600/40 blur-3xl" />
+          <div className="ps-blob-b absolute -bottom-40 -right-24 h-[32rem] w-[32rem] rounded-full bg-sky-400/25 blur-3xl" />
+          <div
+            className="absolute inset-0 opacity-[0.12]"
+            style={{
+              backgroundImage: "radial-gradient(#fff 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+              maskImage: "linear-gradient(to bottom, black, transparent 90%)",
+              WebkitMaskImage: "linear-gradient(to bottom, black, transparent 90%)",
+            }}
+          />
+        </div>
 
-        <div className="mx-auto max-w-5xl px-5 pb-12 pt-12 sm:px-8 sm:pb-16 sm:pt-16 md:pt-20">
+        <div className="mx-auto max-w-5xl px-5 pt-14 sm:px-8 sm:pt-20">
           <div className="flex flex-col items-center gap-10 text-center md:flex-row md:gap-16 md:text-left">
-            {/* Round profile photo */}
-            <div className="relative shrink-0 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-700">
-              <div className="rounded-full bg-gradient-to-br from-sky-400 to-blue-600 p-1 shadow-2xl shadow-blue-600/25">
-                <div className="h-40 w-40 overflow-hidden rounded-full bg-white ring-4 ring-white dark:bg-[#0b2150] dark:ring-[#080f1e] sm:h-52 sm:w-52">
+            {/* Round profile photo with a slowly sweeping light ring */}
+            <div className="ps-pop relative shrink-0" style={delay(0)}>
+              <div aria-hidden className="absolute -inset-6 rounded-full bg-sky-400/20 blur-2xl" />
+              <div
+                aria-hidden
+                className="ps-spin absolute -inset-1.5 rounded-full"
+                style={{
+                  background: "conic-gradient(from 0deg, #38bdf8, #1d4ed8 35%, transparent 60%, #38bdf8)",
+                }}
+              />
+              <div className="relative rounded-full bg-[#06142e] p-1.5">
+                <div className="h-40 w-40 overflow-hidden rounded-full bg-[#0b2150] sm:h-52 sm:w-52 lg:h-60 lg:w-60">
                   {portfolio.profile_photo_url && !imgError ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -402,11 +686,11 @@ export default function PublicPortfolioPage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-sky-50 dark:bg-[#0b2150]">
+                    <div className="flex h-full w-full items-center justify-center">
                       {initials ? (
-                        <span className="text-6xl font-bold text-sky-600 dark:text-sky-200">{initials}</span>
+                        <span className="text-6xl font-bold text-sky-200">{initials}</span>
                       ) : (
-                        <UserRound className="h-20 w-20 text-sky-600 dark:text-sky-200" aria-hidden />
+                        <UserRound className="h-20 w-20 text-sky-200" aria-hidden />
                       )}
                     </div>
                   )}
@@ -414,17 +698,20 @@ export default function PublicPortfolioPage() {
               </div>
               <span
                 title="Logos College student"
-                className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-slate-200 dark:bg-[#0d1729] dark:ring-white/10 sm:bottom-3 sm:right-3"
+                className="ps-float absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg ring-4 ring-[#06142e] sm:bottom-4 sm:right-4"
               >
-                <BadgeCheck className="h-6 w-6 text-sky-600 dark:text-sky-300" aria-hidden />
+                <BadgeCheck className="h-6 w-6 text-sky-600" aria-hidden />
                 <span className="sr-only">Logos College student</span>
               </span>
             </div>
 
-            {/* Introduction */}
-            <div className="min-w-0 max-w-xl motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-700">
+            {/* Introduction: one staged entrance, name first */}
+            <div className="min-w-0 max-w-xl">
               {portfolio.program_name && (
-                <p className="inline-flex max-w-full items-center gap-2 rounded-full border border-sky-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-sky-700 shadow-sm dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-200">
+                <p
+                  className="ps-fade-up inline-flex max-w-full items-center gap-2 rounded-full border border-sky-400/30 bg-sky-400/10 px-3.5 py-1.5 text-xs font-semibold text-sky-200"
+                  style={delay(120)}
+                >
                   <BookOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   <span className="truncate">{portfolio.program_name}</span>
                 </p>
@@ -432,24 +719,39 @@ export default function PublicPortfolioPage() {
 
               <h1
                 id="student-name"
-                className="mt-4 break-words text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl"
+                className="mt-4 break-words text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl"
               >
-                {studentName}
+                {nameWords.map((word, index) => (
+                  <Fragment key={`${word}-${index}`}>
+                    {index > 0 ? " " : null}
+                    <span className="inline-block overflow-hidden pb-[0.14em] align-bottom">
+                      <span className="ps-rise inline-block" style={delay(200 + index * 90)}>
+                        {word}
+                      </span>
+                    </span>
+                  </Fragment>
+                ))}
               </h1>
 
-              <p className="mt-3 bg-gradient-to-r from-blue-600 to-sky-500 bg-clip-text text-xl font-semibold text-transparent dark:from-sky-300 dark:to-blue-400 sm:text-2xl">
+              <p
+                className="ps-fade-up mt-3 bg-gradient-to-r from-sky-300 to-blue-400 bg-clip-text text-xl font-semibold text-transparent sm:text-2xl"
+                style={delay(560)}
+              >
                 {portfolio.title || "Student Portfolio"}
               </p>
 
               {hasBio && (
-                <div className="mt-6 rounded-2xl border border-slate-200 bg-white/80 p-5 text-left shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
-                  <p className="whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300">{bioText}</p>
+                <div
+                  className="ps-fade-up mt-6 rounded-2xl border border-white/10 bg-white/[0.06] p-5 text-left backdrop-blur"
+                  style={delay(680)}
+                >
+                  <p className="whitespace-pre-line text-sm leading-7 text-slate-300">{bioText}</p>
                   {bioIsLong && (
                     <button
                       type="button"
                       onClick={() => setBioOpen((open) => !open)}
                       aria-expanded={bioOpen}
-                      className="mt-2 rounded text-xs font-semibold text-sky-600 underline underline-offset-4 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:text-sky-300"
+                      className="mt-2 rounded text-xs font-semibold text-sky-300 underline underline-offset-4 hover:text-sky-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
                     >
                       {bioOpen ? "Show less" : "Read more"}
                     </button>
@@ -457,10 +759,13 @@ export default function PublicPortfolioPage() {
                 </div>
               )}
 
-              <div className="mt-7 flex flex-wrap items-center justify-center gap-3 md:justify-start">
+              <div
+                className="ps-fade-up mt-7 flex flex-wrap items-center justify-center gap-3 md:justify-start"
+                style={delay(820)}
+              >
                 <a
                   href="#projects"
-                  className={`group inline-flex h-12 items-center gap-2 rounded-full px-6 text-sm font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 ${PRIMARY_BTN}`}
+                  className={`group inline-flex h-12 items-center gap-2 rounded-full px-6 text-sm font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40 ${PRIMARY_BTN}`}
                 >
                   View projects
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
@@ -468,7 +773,7 @@ export default function PublicPortfolioPage() {
                 {transcripts.length > 0 && (
                   <a
                     href="#transcripts"
-                    className="inline-flex h-12 items-center gap-2 rounded-full border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:border-sky-400 hover:text-sky-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:border-white/15 dark:bg-transparent dark:text-slate-200 dark:hover:text-sky-300"
+                    className="inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
                   >
                     <FileText className="h-4 w-4" aria-hidden />
                     Transcripts
@@ -477,29 +782,68 @@ export default function PublicPortfolioPage() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Stats strip */}
-          {stats.length > 0 && (
-            <dl className="mx-auto mt-12 flex max-w-2xl divide-x divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:divide-white/10 dark:border-white/10 dark:bg-white/[0.04]">
-              {stats.map(([label, value]) => (
-                <div key={label} className="flex flex-1 flex-col-reverse items-center px-3 py-4 text-center">
-                  <dt className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                    {label}
-                  </dt>
-                  <dd className="text-2xl font-bold tracking-tight sm:text-3xl">{value}</dd>
+        {/* Decorative technology ticker (the real list is in the Technologies section) */}
+        {marqueeItems.length > 0 && (
+          <div
+            aria-hidden
+            className="ps-marquee relative mt-14 overflow-hidden border-y border-white/10 py-4"
+            style={{
+              maskImage: "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+              WebkitMaskImage: "linear-gradient(to right, transparent, black 12%, black 88%, transparent)",
+            }}
+          >
+            <div className="ps-marquee-track flex w-max">
+              {[...marqueeItems, ...marqueeItems].map((tech, index) => (
+                <span
+                  key={`${tech.name}-${index}`}
+                  className="flex shrink-0 items-center gap-10 pr-10 text-sm font-semibold text-slate-300/80"
+                >
+                  {tech.name}
+                  <span className="h-1.5 w-1.5 rotate-45 bg-sky-400/70" />
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Stats card overlaps the hero edge */}
+      {stats.length > 0 && (
+        <div className="relative z-10 mx-auto -mt-8 max-w-3xl px-5 sm:px-8">
+          <Reveal>
+            <dl
+              className="grid divide-x divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-blue-950/10 dark:divide-white/10 dark:border-white/10 dark:bg-[#0d1729]"
+              style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}
+            >
+              {stats.map(({ label, value, Icon }) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-center gap-4 px-3 py-4 sm:px-6 sm:py-5"
+                >
+                  <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300 sm:flex">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <div className="flex flex-col-reverse text-center sm:text-left">
+                    <dt className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</dt>
+                    <dd className="text-2xl font-bold tracking-tight sm:text-3xl">
+                      <CountUp value={value} />
+                    </dd>
+                  </div>
                 </div>
               ))}
             </dl>
-          )}
+          </Reveal>
         </div>
-      </section>
+      )}
 
       {/* ------------------------------ Main content ------------------------------ */}
       <div className="mx-auto max-w-5xl space-y-20 px-5 py-16 sm:space-y-24 sm:px-8 sm:py-20">
         {/* Projects */}
         <section id="projects" aria-labelledby="projects-heading" className="scroll-mt-24">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <SectionHeading eyebrow="Portfolio" title="Projects" id="projects-heading">
+            <SectionHeading icon={FolderKanban} title="Projects" id="projects-heading">
               {projects.length > 0 && (
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400" aria-live="polite">
                   {filtersActive
@@ -545,7 +889,7 @@ export default function PublicPortfolioPage() {
               <button
                 type="button"
                 onClick={() => setActiveTech("All")}
-                className="inline-flex min-h-9 items-center gap-2 rounded-full bg-sky-50 px-3.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300"
+                className="ps-pop inline-flex min-h-9 items-center gap-2 rounded-full bg-sky-50 px-3.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300"
               >
                 Technology: {activeTech}
                 <X className="h-3.5 w-3.5" aria-hidden />
@@ -556,7 +900,7 @@ export default function PublicPortfolioPage() {
 
           {projects.length === 0 ? (
             <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center dark:border-white/15 dark:bg-white/[0.025]">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
+              <div className="ps-float mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
                 <Code2 className="h-6 w-6" aria-hidden />
               </div>
               <h3 className="mt-5 text-lg font-bold">No projects yet</h3>
@@ -565,7 +909,7 @@ export default function PublicPortfolioPage() {
               </p>
             </div>
           ) : filteredProjects.length === 0 ? (
-            <div className="mt-8 rounded-2xl bg-slate-100 px-6 py-14 text-center dark:bg-white/5">
+            <div className="ps-pop mt-8 rounded-2xl bg-slate-100 px-6 py-14 text-center dark:bg-white/5">
               <Search className="mx-auto h-8 w-8 text-slate-400" aria-hidden />
               <h3 className="mt-4 font-bold">No matching projects</h3>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
@@ -580,40 +924,37 @@ export default function PublicPortfolioPage() {
               </button>
             </div>
           ) : (
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} onOpen={setSelected} />
-              ))}
+            // Keyed by technology so the cards re-enter when the filter changes
+            <div key={activeTech} className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredProjects.map((project, index) => {
+                const featured = featuredEnabled && index === 0;
+                return (
+                  <Reveal
+                    key={project.id}
+                    delay={featured ? 0 : (index % 3) * 90}
+                    className={`h-full min-w-0 ${featured ? "sm:col-span-2 lg:col-span-3" : ""}`}
+                  >
+                    <ProjectCard project={project} onOpen={setSelected} featured={featured} />
+                  </Reveal>
+                );
+              })}
             </div>
           )}
         </section>
 
         {/* Technologies */}
         <section id="technologies" aria-labelledby="technologies-heading" className="scroll-mt-24">
-          <SectionHeading eyebrow="Skills" title="Technologies" id="technologies-heading">
+          <SectionHeading icon={Layers} title="Technologies" id="technologies-heading">
             {technologies.length > 0 && (
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Tools and languages used across projects. Select one to filter.
+                Tools and languages used across projects. The shading shows how often each one appears. Select one to
+                filter.
               </p>
             )}
           </SectionHeading>
 
           {technologies.length > 0 ? (
-            <div
-              role="group"
-              aria-label="Filter projects by technology"
-              className="mt-6 flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-5 dark:border-white/10 dark:bg-white/[0.025] sm:p-6"
-            >
-              {technologies.map(({ name, count }) => (
-                <TechChip
-                  key={name}
-                  name={name}
-                  count={count}
-                  active={activeTech === name}
-                  onToggle={() => selectTech(name)}
-                />
-              ))}
-            </div>
+            <TechnologyCloud technologies={technologies} activeTech={activeTech} onSelect={selectTech} />
           ) : (
             <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">No technologies listed yet.</p>
           )}
@@ -621,11 +962,9 @@ export default function PublicPortfolioPage() {
 
         {/* Transcripts */}
         <section id="transcripts" aria-labelledby="transcripts-heading" className="scroll-mt-24">
-          <SectionHeading eyebrow="Academic record" title="Transcripts" id="transcripts-heading">
+          <SectionHeading icon={GraduationCap} title="Transcripts" id="transcripts-heading">
             {transcripts.length > 0 && (
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Records issued by Logos College.
-              </p>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Records issued by Logos College.</p>
             )}
           </SectionHeading>
 
@@ -689,7 +1028,23 @@ export default function PublicPortfolioPage() {
         </div>
       </footer>
 
-      {selected && <ProjectModal project={selected} onClose={closeModal} />}
+      {/* Floating back-to-top button */}
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Back to top"
+        aria-hidden={!showTop}
+        tabIndex={showTop ? 0 : -1}
+        className={`fixed bottom-5 right-5 z-30 flex h-12 w-12 items-center justify-center rounded-full text-white transition duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/50 ${PRIMARY_BTN} ${
+          showTop ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
+        }`}
+      >
+        <ArrowUp className="h-5 w-5" aria-hidden />
+      </button>
+
+      {selected && (
+        <ProjectModal project={selected} projects={filteredProjects} onSelect={setSelected} onClose={closeModal} />
+      )}
     </main>
   );
 }
@@ -699,42 +1054,86 @@ export default function PublicPortfolioPage() {
 /* -------------------------------------------------------------------------- */
 
 function SectionHeading({
-  eyebrow,
+  icon: Icon,
   title,
   id,
   children,
 }: {
-  eyebrow: string;
+  icon: LucideIcon;
   title: string;
   id: string;
   children?: ReactNode;
 }) {
   return (
-    <div>
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-sky-600 dark:text-sky-300">
-        <span aria-hidden className="h-0.5 w-6 rounded-full bg-gradient-to-r from-sky-400 to-blue-600" />
-        {eyebrow}
-      </p>
-      <h2 id={id} className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-        {title}
-      </h2>
-      {children}
-    </div>
+    <Reveal>
+      <div className="flex items-start gap-4">
+        <span className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-lg shadow-blue-600/25">
+          <Icon className="h-5 w-5" aria-hidden />
+        </span>
+        <div>
+          <h2 id={id} className="text-3xl font-bold tracking-tight sm:text-4xl">
+            {title}
+          </h2>
+          {children}
+        </div>
+      </div>
+    </Reveal>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*                               Technology chip                              */
+/*                               Technology chips                             */
 /* -------------------------------------------------------------------------- */
+
+function TechnologyCloud({
+  technologies,
+  activeTech,
+  onSelect,
+}: {
+  technologies: { name: string; count: number }[];
+  activeTech: string;
+  onSelect: (name: string) => void;
+}) {
+  const [ref, shown] = useInView<HTMLDivElement>();
+  const max = Math.max(...technologies.map((tech) => tech.count), 1);
+
+  return (
+    <div
+      ref={ref}
+      role="group"
+      aria-label="Filter projects by technology"
+      className="mt-6 flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-5 dark:border-white/10 dark:bg-white/[0.025] sm:p-6"
+    >
+      {technologies.map(({ name, count }, index) => (
+        <TechChip
+          key={name}
+          name={name}
+          count={count}
+          ratio={count / max}
+          index={index}
+          shown={shown}
+          active={activeTech === name}
+          onToggle={() => onSelect(name)}
+        />
+      ))}
+    </div>
+  );
+}
 
 function TechChip({
   name,
   count,
+  ratio,
+  index,
+  shown,
   active,
   onToggle,
 }: {
   name: string;
   count: number;
+  ratio: number;
+  index: number;
+  shown: boolean;
   active: boolean;
   onToggle: () => void;
 }) {
@@ -743,15 +1142,25 @@ function TechChip({
       type="button"
       aria-pressed={active}
       onClick={onToggle}
-      className={`inline-flex h-10 items-center gap-2 rounded-xl px-5 text-sm font-medium transition focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/25 ${
+      className={`relative inline-flex h-11 items-center gap-2 overflow-hidden rounded-xl px-5 text-sm font-medium transition duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/25 motion-reduce:hover:translate-y-0 ${
         active
           ? "bg-gradient-to-r from-blue-600 to-sky-500 text-white shadow-md shadow-blue-600/25"
           : "border border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:text-sky-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-sky-400/40 dark:hover:text-sky-300"
       }`}
     >
-      {name}
+      {!active && (
+        <span
+          aria-hidden
+          className="ps-bar-fill absolute inset-y-0 left-0 bg-sky-500/10 transition-[width] duration-1000 ease-out dark:bg-sky-400/10"
+          style={{
+            width: shown ? `${Math.round(Math.max(0.15, ratio) * 100)}%` : "0%",
+            transitionDelay: `${Math.min(index, 12) * 50}ms`,
+          }}
+        />
+      )}
+      <span className="relative">{name}</span>
       <span
-        className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
+        className={`relative rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
           active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"
         }`}
       >
@@ -771,7 +1180,7 @@ function TranscriptCard({ transcript, index }: { transcript: Transcript; index: 
 
   const content = (
     <>
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition-colors duration-300 group-hover:bg-sky-600 group-hover:text-white dark:bg-sky-500/10 dark:text-sky-300 dark:group-hover:bg-sky-500 dark:group-hover:text-white">
         <FileText className="h-5 w-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
@@ -794,19 +1203,21 @@ function TranscriptCard({ transcript, index }: { transcript: Transcript; index: 
 
   return (
     <li>
-      {href ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`${cardClass} transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-lg hover:shadow-blue-950/[0.06] focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:hover:border-sky-400/30`}
-        >
-          {content}
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
-      ) : (
-        <div className={cardClass}>{content}</div>
-      )}
+      <Reveal delay={Math.min(index, 5) * 70}>
+        {href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${cardClass} transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-lg hover:shadow-blue-950/[0.06] focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:hover:border-sky-400/30`}
+          >
+            {content}
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        ) : (
+          <div className={cardClass}>{content}</div>
+        )}
+      </Reveal>
     </li>
   );
 }
@@ -815,15 +1226,48 @@ function TranscriptCard({ transcript, index }: { transcript: Transcript; index: 
 /*                                Project card                                */
 /* -------------------------------------------------------------------------- */
 
-function ProjectCard({ project, onOpen }: { project: Project; onOpen: (project: Project) => void }) {
+function ProjectCard({
+  project,
+  onOpen,
+  featured = false,
+}: {
+  project: Project;
+  onOpen: (project: Project) => void;
+  featured?: boolean;
+}) {
   const tech = getTechnologies(project.technologies);
   const hasLive = isExternalUrl(project.project_url);
-  const maxTech = 3;
+  const maxTech = featured ? 6 : 3;
+
+  // Feeds the cursor-following glow (see the overlay below)
+  const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty("--mx", `${event.clientX - rect.left}px`);
+    event.currentTarget.style.setProperty("--my", `${event.clientY - rect.top}px`);
+  };
 
   return (
     // The title button stretches over the whole card (after:absolute), so the card has a single tab stop.
-    <article className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 focus-within:ring-4 focus-within:ring-sky-500/30 hover:-translate-y-1 hover:border-sky-300 hover:shadow-xl hover:shadow-blue-950/[0.08] motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-white/10 dark:bg-[#0d1729] dark:hover:border-sky-400/30">
-      <div className="relative aspect-[16/11] overflow-hidden bg-slate-100 dark:bg-slate-900">
+    <article
+      onPointerMove={handlePointerMove}
+      className={`group relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 focus-within:ring-4 focus-within:ring-sky-500/30 hover:-translate-y-1 hover:border-sky-300 hover:shadow-xl hover:shadow-blue-950/[0.08] motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-white/10 dark:bg-[#0d1729] dark:hover:border-sky-400/30 ${
+        featured ? "md:flex-row" : ""
+      }`}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[1] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{
+          background:
+            "radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(56,189,248,0.16), transparent 65%)",
+        }}
+      />
+
+      <div
+        className={`relative aspect-[16/11] overflow-hidden bg-slate-100 dark:bg-slate-900 ${
+          featured ? "md:aspect-auto md:min-h-[22rem] md:w-1/2" : ""
+        }`}
+      >
         {project.image_url ? (
           <ProjectImage src={project.image_url} title={project.title} fit="cover" />
         ) : (
@@ -839,14 +1283,21 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: (project: 
         />
         {hasLive && (
           <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-slate-800 shadow-sm backdrop-blur">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span aria-hidden className="ps-live-dot h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Live
           </span>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        <h3 className="text-lg font-bold leading-snug tracking-tight">
+      <div className={`flex flex-1 flex-col p-5 ${featured ? "md:justify-center md:p-10" : ""}`}>
+        {featured && (
+          <p className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-200">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            Featured project
+          </p>
+        )}
+
+        <h3 className={`text-lg font-bold leading-snug tracking-tight ${featured ? "md:text-3xl" : ""}`}>
           <button
             type="button"
             onClick={() => onOpen(project)}
@@ -857,7 +1308,11 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: (project: 
           </button>
         </h3>
 
-        <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+        <p
+          className={`mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400 ${
+            featured ? "line-clamp-2 md:line-clamp-4 md:text-base md:leading-7" : "line-clamp-2"
+          }`}
+        >
           {project.description || "A project built as part of this student’s practical work."}
         </p>
 
@@ -881,9 +1336,12 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: (project: 
 
         <span
           aria-hidden
-          className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-semibold text-slate-700 transition group-hover:text-sky-600 dark:text-slate-200 dark:group-hover:text-sky-300"
+          className={`mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-semibold text-slate-700 transition group-hover:text-sky-600 dark:text-slate-200 dark:group-hover:text-sky-300 ${
+            featured ? "md:mt-6 md:pt-0" : ""
+          }`}
         >
-          View details <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          View details{" "}
+          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
         </span>
       </div>
     </article>
@@ -896,11 +1354,46 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: (project: 
 
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-function ProjectModal({ project, onClose }: { project: Project; onClose: () => void }) {
+function ProjectModal({
+  project,
+  projects,
+  onSelect,
+  onClose,
+}: {
+  project: Project;
+  projects: Project[];
+  onSelect: (project: Project) => void;
+  onClose: () => void;
+}) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const closingRef = useRef(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [closing, setClosing] = useState(false);
+
   const tech = getTechnologies(project.technologies);
   const liveUrl = isExternalUrl(project.project_url) ? project.project_url! : null;
+  const index = projects.findIndex((item) => item.id === project.id);
+  const canNavigate = index !== -1 && projects.length > 1;
+
+  // Latest props for the long-lived keyboard handler (keeps the setup effect from re-running)
+  const latest = useRef({ onClose, onSelect, projects, index });
+  useEffect(() => {
+    latest.current = { onClose, onSelect, projects, index };
+  });
+
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setClosing(true);
+    closeTimer.current = setTimeout(() => latest.current.onClose(), prefersReducedMotion() ? 0 : 180);
+  }, []);
+
+  const go = useCallback((direction: 1 | -1) => {
+    const { projects: list, index: current, onSelect: select } = latest.current;
+    if (current === -1 || list.length < 2) return;
+    select(list[(current + direction + list.length) % list.length]);
+  }, []);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -910,7 +1403,15 @@ function ProjectModal({ project, onClose }: { project: Project; onClose: () => v
 
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        requestClose();
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        go(1);
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        go(-1);
         return;
       }
       // Keep keyboard focus inside the dialog
@@ -933,16 +1434,24 @@ function ProjectModal({ project, onClose }: { project: Project; onClose: () => v
     document.addEventListener("keydown", handleKey);
     return () => {
       document.removeEventListener("keydown", handleKey);
+      if (closeTimer.current) clearTimeout(closeTimer.current);
       document.body.style.overflow = previousOverflow;
       previouslyFocused?.focus();
     };
-  }, [onClose]);
+  }, [requestClose, go]);
+
+  // Start each project at the top when moving between them
+  useEffect(() => {
+    dialogRef.current?.scrollTo({ top: 0 });
+  }, [project.id]);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-6"
+      className={`fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm sm:items-center sm:p-6 ${
+        closing ? "ps-backdrop-out" : "ps-backdrop-in"
+      }`}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) requestClose();
       }}
     >
       <div
@@ -950,68 +1459,97 @@ function ProjectModal({ project, onClose }: { project: Project; onClose: () => v
         role="dialog"
         aria-modal="true"
         aria-label={project.title}
-        className="relative max-h-[92dvh] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-t-3xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 dark:bg-[#0d1729] sm:rounded-3xl"
+        className={`relative max-h-[92dvh] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-t-3xl bg-white shadow-2xl dark:bg-[#0d1729] sm:rounded-3xl ${
+          closing ? "ps-panel-out" : "ps-panel-in"
+        }`}
       >
         <button
           ref={closeRef}
           type="button"
-          onClick={onClose}
+          onClick={requestClose}
           aria-label="Close project details"
           className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-slate-950/60 text-white backdrop-blur transition hover:bg-slate-950/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/50"
         >
           <X className="h-5 w-5" aria-hidden />
         </button>
 
-        {project.image_url && (
-          <div className="aspect-[16/9] w-full bg-slate-100 dark:bg-slate-900">
-            <ProjectImage src={project.image_url} title={project.title} fit="contain" />
-          </div>
-        )}
-
-        <div className="p-6 sm:p-8">
-          <div aria-hidden className="mb-4 h-1 w-14 rounded-full bg-gradient-to-r from-sky-400 to-blue-600" />
-          <h2 className="pr-10 text-2xl font-bold tracking-tight sm:text-3xl">{project.title}</h2>
-
-          {tech.length > 0 && (
-            <ul aria-label="Technologies used" className="mt-4 flex flex-wrap gap-1.5">
-              {tech.map((item) => (
-                <li
-                  key={item}
-                  className="rounded-md bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-200"
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
+        {/* Re-keyed per project so content fades in when you move to the next one */}
+        <div key={project.id} className="ps-swap">
+          {project.image_url && (
+            <div className="aspect-[16/9] w-full bg-slate-100 dark:bg-slate-900">
+              <ProjectImage src={project.image_url} title={project.title} fit="contain" />
+            </div>
           )}
 
-          <p className="mt-5 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-            {project.description || "A project built as part of this student’s practical work."}
-          </p>
+          <div className="p-6 sm:p-8">
+            <div aria-hidden className="mb-4 h-1 w-14 rounded-full bg-gradient-to-r from-sky-400 to-blue-600" />
+            <h2 className="pr-10 text-2xl font-bold tracking-tight sm:text-3xl">{project.title}</h2>
 
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-            {liveUrl ? (
-              <a
-                href={liveUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 ${PRIMARY_BTN}`}
-              >
-                View live project <ArrowUpRight className="h-4 w-4" aria-hidden />
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
-            ) : (
-              <span className="text-sm text-slate-400">No live link provided for this project.</span>
+            {tech.length > 0 && (
+              <ul aria-label="Technologies used" className="mt-4 flex flex-wrap gap-1.5">
+                {tech.map((item) => (
+                  <li
+                    key={item}
+                    className="rounded-md bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-200"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
-            >
-              Close
-            </button>
+
+            <p className="mt-5 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
+              {project.description || "A project built as part of this student’s practical work."}
+            </p>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+              {liveUrl ? (
+                <a
+                  href={liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 ${PRIMARY_BTN}`}
+                >
+                  View live project <ArrowUpRight className="h-4 w-4" aria-hidden />
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              ) : (
+                <span className="text-sm text-slate-400">No live link provided for this project.</span>
+              )}
+              <button
+                type="button"
+                onClick={requestClose}
+                className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
+
+        {canNavigate && (
+          <div className="mx-6 flex items-center justify-between gap-3 border-t border-slate-200 py-4 dark:border-white/10 sm:mx-8">
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-sky-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-sky-300"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+              Previous
+            </button>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400" aria-live="polite">
+              {index + 1} of {projects.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-sky-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-sky-300"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1036,7 +1574,7 @@ function ProjectImage({ src, title, fit }: { src: string; title: string; fit: "c
       loading="lazy"
       onError={() => setFailed(true)}
       className={`h-full w-full transition-transform duration-500 motion-reduce:transition-none ${
-        fit === "cover" ? "object-cover object-top group-hover:scale-[1.03]" : "object-contain p-3"
+        fit === "cover" ? "object-cover object-top group-hover:scale-[1.04]" : "object-contain p-3"
       }`}
     />
   );
