@@ -100,6 +100,11 @@ async function handleProxy(request: NextRequest) {
     if (error instanceof Error && error.name === 'TimeoutError') {
       return NextResponse.json({ error: 'Backend took too long to respond' }, { status: 504 });
     }
+    // fetch() throws TypeError when the backend is down or unreachable
+    if (error instanceof TypeError) {
+      console.error('Proxy error: backend unreachable', error);
+      return NextResponse.json({ error: 'Backend service is unavailable' }, { status: 502 });
+    }
     console.error('Proxy error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

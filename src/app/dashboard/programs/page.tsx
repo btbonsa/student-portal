@@ -215,6 +215,8 @@ export default function ProgramsPage() {
               const isDisabled = selecting !== null && !isSelected;
               const imageUrl = getProgramImageUrl(program.name);
               const fee = formatFee(program.monthly_fee);
+              const isInviteOnly =
+                program.is_public === 0 || program.is_public === false;
 
               return (
                 <li key={program.id} className="flex">
@@ -249,10 +251,17 @@ export default function ProgramsPage() {
 
                       {/* Top row */}
                       <div className="absolute left-3 right-3 top-3 z-10 flex items-center justify-between">
-                        <Badge className="gap-1 border border-white/15 bg-black/40 font-medium text-white shadow-sm backdrop-blur-md">
-                          <Sparkles className="h-3 w-3 text-sky-300" aria-hidden />
-                          Active Course
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge className="gap-1 border border-white/15 bg-black/40 font-medium text-white shadow-sm backdrop-blur-md">
+                            <Sparkles className="h-3 w-3 text-sky-300" aria-hidden />
+                            Active Course
+                          </Badge>
+                          {isInviteOnly && (
+                            <Badge className="border border-white/15 bg-black/40 font-medium text-sky-200 shadow-sm backdrop-blur-md">
+                              Invite only
+                            </Badge>
+                          )}
+                        </div>
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:bg-sky-500">
                           <ArrowUpRight className="h-4 w-4" aria-hidden />
                         </div>

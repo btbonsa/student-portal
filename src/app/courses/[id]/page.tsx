@@ -6,7 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { getPrograms, Program } from "@/services/programservices";
 import { createRegistration } from "@/services/registrationservices";
-import { getToken } from "@/lib/auth";
+import { clearAuth, getToken } from "@/lib/auth";
+import { isAuthError } from "@/services/apiservices";
 import { getProgramImageUrl } from "@/lib/program-image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -231,6 +232,12 @@ export default function CourseDetailPage() {
 
       router.push("/dashboard/payment");
     } catch (err) {
+      // Expired/invalid session: drop the stale token and send them to log in
+      if (isAuthError(err)) {
+        clearAuth();
+        router.push("/login");
+        return;
+      }
       setEnrollError(
         err instanceof Error ? err.message : "Failed to enroll in program."
       );

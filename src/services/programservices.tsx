@@ -9,6 +9,7 @@ export interface Program {
   fee: string;
   monthly_fee: string;
   image_url: string | null;
+  is_public?: number | boolean;
 }
 
 interface ProgramsResponse {
