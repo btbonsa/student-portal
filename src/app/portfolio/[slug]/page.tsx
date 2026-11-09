@@ -4,28 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Source_Serif_4 } from "next/font/google";
 import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
-  BadgeCheck,
-  BookOpen,
-  Check,
   Code2,
+  FileText,
   FolderKanban,
-  Link2,
-  Search,
   UserRound,
   X,
 } from "lucide-react";
 
 import icon from "../../../../public/icons/icon.png";
-
-const serif = Source_Serif_4({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
 
 interface Project {
   id: number;
@@ -34,6 +24,12 @@ interface Project {
   technologies?: string | null;
   project_url?: string | null;
   image_url?: string | null;
+}
+
+interface Transcript {
+  id?: number | string;
+  title?: string | null;
+  file_url?: string | null;
 }
 
 interface Portfolio {
@@ -48,6 +44,7 @@ interface Portfolio {
   program_name?: string | null;
   profile_photo_url?: string | null;
   projects?: Project[];
+  transcripts?: Transcript[];
 }
 
 // API requests go through /api/proxy so the backend URL stays server-side.
@@ -74,6 +71,13 @@ function isExternalUrl(value?: string | null) {
   }
 }
 
+// Same as above, but also allows site-relative links such as /uploads/transcript.pdf
+function isLinkableUrl(value?: string | null) {
+  if (!value) return false;
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  return isExternalUrl(value);
+}
+
 export default function PublicPortfolioPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
@@ -82,11 +86,9 @@ export default function PublicPortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [imgError, setImgError] = useState(false);
-  const [query, setQuery] = useState("");
   const [activeTech, setActiveTech] = useState("All");
   const [selected, setSelected] = useState<Project | null>(null);
-  const [copied, setCopied] = useState(false);
-  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [bioOpen, setBioOpen] = useState(false);
 
   const loadPortfolio = useCallback(
     async (signal?: AbortSignal) => {
@@ -107,7 +109,11 @@ export default function PublicPortfolioPage() {
           );
         }
         const base: Portfolio = data.portfolio ?? data;
-        const result: Portfolio = { ...base, projects: data.projects ?? base.projects ?? [] };
+        const result: Portfolio = {
+          ...base,
+          projects: data.projects ?? base.projects ?? [],
+          transcripts: data.transcripts ?? base.transcripts ?? [],
+        };
         setPortfolio(result);
         setImgError(false);
       } catch (err) {
@@ -127,13 +133,8 @@ export default function PublicPortfolioPage() {
     return () => controller.abort();
   }, [loadPortfolio]);
 
-  useEffect(() => {
-    return () => {
-      if (copyTimer.current) clearTimeout(copyTimer.current);
-    };
-  }, []);
-
   const projects = useMemo(() => portfolio?.projects ?? [], [portfolio?.projects]);
+  const transcripts = useMemo(() => portfolio?.transcripts ?? [], [portfolio?.transcripts]);
 
   // Technologies sorted by how many projects use them
   const technologies = useMemo(() => {
@@ -148,71 +149,38 @@ export default function PublicPortfolioPage() {
     );
   }, [projects]);
 
-  const liveCount = useMemo(
-    () => projects.filter((project) => isExternalUrl(project.project_url)).length,
-    [projects]
+  const filteredProjects = useMemo(
+    () =>
+      activeTech === "All"
+        ? projects
+        : projects.filter((project) => getTechnologies(project.technologies).includes(activeTech)),
+    [projects, activeTech]
   );
-
-  const filteredProjects = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return projects.filter((project) => {
-      const matchesTech = activeTech === "All" || getTechnologies(project.technologies).includes(activeTech);
-      const searchable = `${project.title} ${project.description || ""} ${project.technologies || ""}`.toLowerCase();
-      return matchesTech && (!normalizedQuery || searchable.includes(normalizedQuery));
-    });
-  }, [projects, query, activeTech]);
 
   const closeModal = useCallback(() => setSelected(null), []);
 
-  const copyLink = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      if (copyTimer.current) clearTimeout(copyTimer.current);
-      copyTimer.current = setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard can be blocked; fail silently
-    }
-  }, []);
-
-  const resetFilters = () => {
-    setQuery("");
-    setActiveTech("All");
-  };
-
+  /* ------------------------------ Loading state ------------------------------ */
   if (loading) {
     return (
       <main
         role="status"
         aria-busy="true"
         aria-label="Loading portfolio"
-        className="min-h-[100dvh] bg-slate-50 dark:bg-[#080f1e]"
+        className="min-h-[100dvh] bg-white dark:bg-[#080f1e]"
       >
+        <div className="h-16 bg-[#06142e]" />
         <div className="animate-pulse motion-reduce:animate-none">
-          <div className="bg-[#06142e] px-5 py-16 sm:px-8 sm:py-24">
-            <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_20rem] lg:items-center lg:gap-16">
-              <div className="aspect-[4/5] w-48 rounded-2xl bg-white/10 sm:w-56 lg:order-last lg:w-full" />
-              <div className="space-y-4">
-                <div className="h-4 w-48 rounded bg-white/10" />
-                <div className="h-16 w-3/4 rounded bg-white/10" />
-                <div className="h-5 w-1/2 rounded bg-white/10" />
-                <div className="h-4 w-full max-w-md rounded bg-white/10" />
-              </div>
+          <div className="mx-auto flex max-w-3xl flex-col items-center gap-8 px-5 py-14 sm:flex-row sm:justify-center sm:gap-14 sm:py-20">
+            <div className="h-36 w-36 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800 sm:h-44 sm:w-44" />
+            <div className="w-full max-w-md space-y-3">
+              <div className="h-12 w-3/4 rounded bg-slate-200 dark:bg-slate-800" />
+              <div className="h-5 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
+              <div className="h-24 w-full rounded-2xl bg-slate-200 dark:bg-slate-800" />
             </div>
           </div>
-          <div className="mx-auto mt-12 grid max-w-6xl gap-5 px-5 sm:grid-cols-2 sm:px-8 lg:grid-cols-3">
+          <div className="mx-auto grid max-w-4xl gap-8 px-5 sm:grid-cols-2 sm:px-8 lg:grid-cols-3">
             {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#0d1729]"
-              >
-                <div className="aspect-[16/10] bg-slate-200 dark:bg-slate-800" />
-                <div className="space-y-3 p-5">
-                  <div className="h-4 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-3 w-full rounded bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-3 w-4/5 rounded bg-slate-200 dark:bg-slate-800" />
-                </div>
-              </div>
+              <div key={item} className="aspect-[208/188] rounded-2xl bg-slate-200 dark:bg-slate-800" />
             ))}
           </div>
         </div>
@@ -220,6 +188,7 @@ export default function PublicPortfolioPage() {
     );
   }
 
+  /* ------------------------------- Error state ------------------------------- */
   if (error || !portfolio) {
     return (
       <main className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-b from-sky-50/70 to-slate-50 px-5 py-12 text-slate-900 dark:from-[#080f1e] dark:to-[#080f1e] dark:text-white">
@@ -266,307 +235,129 @@ export default function PublicPortfolioPage() {
     .join("")
     .toUpperCase();
   const hasBio = Boolean(biography);
-  const hasTech = technologies.length > 0;
-  // Desktop sidebar shows bio + technologies; on phones the technologies move into the projects section
-  const hasSidebar = hasBio || hasTech;
-  const filtersActive = query.trim() !== "" || activeTech !== "All";
-  const showFeatured = !filtersActive && filteredProjects.length > 1;
-
-  // Hero content
   const bioIsLong = biography.length > BIO_EXCERPT_LENGTH;
-  const bioExcerpt = bioIsLong ? `${biography.slice(0, BIO_EXCERPT_LENGTH).trimEnd()}…` : biography;
-  const topTech = technologies.slice(0, 5).map((tech) => tech.name);
-  // Hide stats that are zero so a new portfolio doesn't open with "0 projects"
-  const heroStats = (
-    [
-      ["Projects", projects.length],
-      ["Technologies", technologies.length],
-      ["Live links", liveCount],
-    ] as [string, number][]
-  ).filter(([, value]) => value > 0);
+  const bioText =
+    bioIsLong && !bioOpen ? `${biography.slice(0, BIO_EXCERPT_LENGTH).trimEnd()}…` : biography;
 
   return (
-    <main className="min-h-[100dvh] bg-slate-50 text-slate-900 selection:bg-sky-200 selection:text-sky-950 dark:bg-[#080f1e] dark:text-slate-100 dark:selection:bg-sky-800 dark:selection:text-white">
+    <main className="min-h-[100dvh] bg-white text-slate-900 selection:bg-sky-200 selection:text-sky-950 dark:bg-[#080f1e] dark:text-slate-100 dark:selection:bg-sky-800 dark:selection:text-white">
       {/* ------------------------------- Header ------------------------------- */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#06142e]/85 text-white backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-5 sm:px-8">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#06142e]/95 text-white backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center px-5 sm:px-8">
           <Link
             href="/"
             className="flex items-center gap-3 rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30"
             aria-label="Logos College home"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white p-1.5 shadow-md shadow-black/20">
-              <Image src={icon} alt="" width={24} height={24} className="object-contain" />
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-1.5 shadow-md shadow-black/20">
+              <Image src={icon} alt="" width={26} height={26} className="object-contain" />
             </span>
             <span className="leading-tight">
-              <span className="block text-sm font-bold">Logos College</span>
-              <span className="block text-[11px] text-slate-400">Student showcase</span>
+              <span className="block text-base font-semibold">Logos College</span>
+              <span className="block text-xs font-medium text-sky-400">Student showcase</span>
             </span>
           </Link>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
-            <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
-            <span className="hidden min-[380px]:inline">Public portfolio</span>
-            <span className="min-[380px]:hidden">Public</span>
-          </span>
         </div>
       </header>
 
       {/* --------------------------------- Hero -------------------------------- */}
-      <section
-        aria-labelledby="student-name"
-        className="relative isolate overflow-hidden border-b border-white/10 bg-[#06142e] text-white"
-      >
-        <div className="mx-auto max-w-6xl px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[1fr_20rem] lg:gap-16">
-            {/* Portrait: first on phones, right column on desktop */}
-            <div className="justify-self-start lg:order-last lg:w-full lg:justify-self-end">
-              <div className="relative w-48 sm:w-56 lg:w-full">
-                {/* Offset outline gives the portrait depth without a glow */}
-                <div
-                  aria-hidden
-                  className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl border-2 border-sky-400/50"
-                />
-                <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-[#0b2150] shadow-2xl shadow-black/40">
-                  {portfolio.profile_photo_url && !imgError ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={portfolio.profile_photo_url}
-                      alt={`${studentName} profile`}
-                      onError={() => setImgError(true)}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      {initials ? (
-                        <span className={`${serif.className} text-7xl font-bold text-sky-200 sm:text-8xl`}>
-                          {initials}
-                        </span>
-                      ) : (
-                        <UserRound className="h-20 w-20 text-sky-200" aria-hidden />
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="absolute -bottom-4 left-4 flex items-center gap-2 rounded-full bg-white py-1.5 pl-1.5 pr-4 text-xs font-semibold text-slate-900 shadow-lg shadow-black/20">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100">
-                    <Image src={icon} alt="" width={16} height={16} className="object-contain" />
-                  </span>
-                  Logos College student
-                </div>
-              </div>
-            </div>
-
-            {/* Introduction */}
-            <div className="min-w-0 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-700">
-              {portfolio.program_name && (
-                <p className="flex items-center gap-2 text-sm font-medium text-sky-300">
-                  <BookOpen className="h-4 w-4 shrink-0" aria-hidden />
-                  <span className="truncate">{portfolio.program_name}</span>
-                </p>
-              )}
-
-              <h1
-                id="student-name"
-                className={`${serif.className} mt-4 break-words text-5xl font-bold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl`}
-              >
-                {studentName}
-              </h1>
-
-              <p className="mt-4 text-xl font-medium text-slate-200 sm:text-2xl">
-                {portfolio.title || "Student Portfolio"}
-              </p>
-
-              {hasBio && (
-                <p className="mt-6 max-w-xl whitespace-pre-line text-base leading-7 text-slate-300">
-                  {bioExcerpt}
-                  {bioIsLong && (
-                    <>
-                      {" "}
-                      <a
-                        href="#about"
-                        className="font-semibold text-sky-300 underline underline-offset-4 hover:text-sky-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
-                      >
-                        Read more
-                      </a>
-                    </>
-                  )}
-                </p>
-              )}
-
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <a
-                  href="#projects"
-                  className="group inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-[#06142e] transition hover:bg-sky-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
-                >
-                  View projects
-                  <ArrowDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
-                </a>
-                <button
-                  type="button"
-                  onClick={() => void copyLink()}
-                  className="inline-flex h-12 items-center gap-2 rounded-full border border-white/25 px-6 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-400/40"
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-emerald-300" aria-hidden />
-                  ) : (
-                    <Link2 className="h-4 w-4" aria-hidden />
-                  )}
-                  {copied ? "Link copied" : "Copy link"}
-                </button>
-                <span role="status" className="sr-only">
-                  {copied ? "Portfolio link copied to clipboard" : ""}
-                </span>
-              </div>
-
-              {heroStats.length > 0 && (
-                <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4 border-t border-white/10 pt-6">
-                  {heroStats.map(([label, value]) => (
-                    <div key={label} className="flex flex-col-reverse">
-                      <dt className="text-sm text-slate-400">{label}</dt>
-                      <dd className={`${serif.className} text-3xl font-bold`}>{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-
-              {topTech.length > 0 && (
-                <p className="mt-6 text-sm leading-6 text-slate-400">
-                  Works with <span className="text-slate-200">{topTech.join(", ")}</span>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ------------------------------ Main content ------------------------------ */}
-      <div
-        className={`mx-auto max-w-6xl gap-10 px-5 py-12 sm:px-8 sm:py-16 ${
-          hasSidebar ? "lg:grid lg:grid-cols-[18rem_1fr] lg:items-start" : ""
-        }`}
-      >
-        {/* Sidebar */}
-        {hasSidebar && (
-          <aside className={`space-y-5 lg:sticky lg:top-24 ${hasBio ? "mb-10 lg:mb-0" : "hidden lg:block"}`}>
-            {hasBio && (
-              <section
-                id="about"
-                className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0d1729]"
-              >
-                <h2 className="flex items-center gap-2 text-base font-bold">
-                  <span aria-hidden className="h-4 w-1 rounded-full bg-gradient-to-b from-sky-400 to-blue-600" />
-                  About
-                </h2>
-                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300">
-                  {biography}
-                </p>
-              </section>
-            )}
-
-            {hasTech && (
-              <section className="hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0d1729] lg:block">
-                <h2 className="flex items-center gap-2 text-base font-bold">
-                  <span aria-hidden className="h-4 w-1 rounded-full bg-gradient-to-b from-sky-400 to-blue-600" />
-                  Technologies
-                </h2>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Select one to filter the projects.</p>
-                <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filter projects by technology">
-                  {technologies.map(({ name, count }) => (
-                    <TechChip
-                      key={name}
-                      name={name}
-                      count={count}
-                      active={activeTech === name}
-                      onToggle={() => setActiveTech(activeTech === name ? "All" : name)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-          </aside>
-        )}
-
-        {/* Projects */}
-        <section id="projects" className="min-w-0 scroll-mt-24">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className={`${serif.className} text-3xl font-bold tracking-tight sm:text-4xl`}>Projects</h2>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400" aria-live="polite">
-                {projects.length > 0
-                  ? `Showing ${filteredProjects.length} of ${projects.length}`
-                  : "Selected work by this student"}
-              </p>
-            </div>
-
-            {projects.length > 0 && (
-              <div className="relative w-full sm:max-w-xs">
-                <label htmlFor="project-search" className="sr-only">
-                  Search projects
-                </label>
-                <Search
-                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                  aria-hidden
-                />
-                <input
-                  id="project-search"
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search projects"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-base outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 dark:border-white/10 dark:bg-white/[0.04] dark:text-white sm:text-sm [&::-webkit-search-cancel-button]:appearance-none"
-                />
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => setQuery("")}
-                    aria-label="Clear search"
-                    className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10"
-                  >
-                    <X className="h-4 w-4" aria-hidden />
-                  </button>
+      <section aria-labelledby="student-name" className="px-5 py-14 sm:px-8 sm:py-20">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-8 text-center sm:flex-row sm:justify-center sm:gap-14 sm:text-left">
+          {/* Round profile photo */}
+          <div className="h-36 w-36 shrink-0 overflow-hidden rounded-full bg-sky-50 shadow-lg shadow-slate-900/10 ring-4 ring-sky-100 dark:bg-[#0b2150] dark:ring-white/10 sm:h-44 sm:w-44">
+            {portfolio.profile_photo_url && !imgError ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={portfolio.profile_photo_url}
+                alt={`${studentName} profile`}
+                onError={() => setImgError(true)}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                {initials ? (
+                  <span className="text-5xl font-semibold text-sky-600 dark:text-sky-200">{initials}</span>
+                ) : (
+                  <UserRound className="h-16 w-16 text-sky-600 dark:text-sky-200" aria-hidden />
                 )}
               </div>
             )}
           </div>
 
-          {/* Technology chips for phones & tablets (sidebar holds them on desktop) */}
-          {hasTech && (
-            <div className="-mx-5 mt-5 lg:hidden">
-              <div
-                role="group"
-                aria-label="Filter projects by technology"
-                className="flex gap-2 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              >
-                {technologies.map(({ name, count }) => (
-                  <TechChip
-                    key={name}
-                    name={name}
-                    count={count}
-                    active={activeTech === name}
-                    onToggle={() => setActiveTech(activeTech === name ? "All" : name)}
-                    className="shrink-0"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Name, title, bio */}
+          <div className="min-w-0 max-w-md">
+            <h1
+              id="student-name"
+              className="break-words text-4xl font-semibold leading-tight tracking-tight sm:text-5xl"
+            >
+              {studentName}
+            </h1>
 
-          {activeTech !== "All" && (
-            <div className="mt-4 hidden lg:block">
+            <p className="mt-2 text-xl text-slate-600 dark:text-slate-300">
+              {portfolio.title || "Student Portfolio"}
+            </p>
+
+            {portfolio.program_name && (
+              <p className="mt-1 text-sm font-medium text-sky-600 dark:text-sky-300">{portfolio.program_name}</p>
+            )}
+
+            {hasBio && (
+              <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-left text-sm leading-6 text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                <p className="whitespace-pre-line">{bioText}</p>
+                {bioIsLong && (
+                  <button
+                    type="button"
+                    onClick={() => setBioOpen((open) => !open)}
+                    aria-expanded={bioOpen}
+                    className="mt-2 rounded text-xs font-semibold text-sky-600 underline underline-offset-4 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:text-sky-300"
+                  >
+                    {bioOpen ? "Show less" : "Read more"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            <a
+              href="#projects"
+              className="group mt-5 inline-flex min-h-11 items-center gap-1.5 rounded text-sm font-medium underline decoration-sky-500 decoration-2 underline-offset-[6px] transition hover:text-sky-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:hover:text-sky-300"
+            >
+              View projects
+              <ArrowDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" aria-hidden />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------ Main content ------------------------------ */}
+      <div className="mx-auto max-w-4xl space-y-16 px-5 pb-20 sm:space-y-20 sm:px-8 sm:pb-24">
+        {/* Projects */}
+        <section id="projects" className="scroll-mt-24">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">Projects</h2>
+              {projects.length > 0 && (
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400" aria-live="polite">
+                  {activeTech !== "All"
+                    ? `Showing ${filteredProjects.length} of ${projects.length}`
+                    : `${projects.length} ${projects.length === 1 ? "project" : "projects"}`}
+                </p>
+              )}
+            </div>
+
+            {activeTech !== "All" && (
               <button
                 type="button"
                 onClick={() => setActiveTech("All")}
-                className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3.5 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-300"
+                className="inline-flex min-h-9 items-center gap-2 rounded-full bg-sky-50 px-3.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300"
               >
                 Technology: {activeTech}
                 <X className="h-3.5 w-3.5" aria-hidden />
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
           {projects.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white/70 px-6 py-16 text-center dark:border-white/15 dark:bg-white/[0.025]">
+            <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center dark:border-white/15 dark:bg-white/[0.025]">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-300">
                 <Code2 className="h-6 w-6" aria-hidden />
               </div>
@@ -576,43 +367,81 @@ export default function PublicPortfolioPage() {
               </p>
             </div>
           ) : filteredProjects.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center dark:border-white/10 dark:bg-white/[0.025]">
-              <Search className="mx-auto h-8 w-8 text-slate-400" aria-hidden />
-              <h3 className="mt-4 font-bold">No matching projects</h3>
+            <div className="mt-6 rounded-2xl bg-slate-100 px-6 py-12 text-center dark:bg-white/5">
+              <h3 className="font-bold">No matching projects</h3>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                Try another search or choose a different technology.
+                No project uses this technology.
               </p>
               <button
                 type="button"
-                onClick={resetFilters}
-                className="mt-5 min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-semibold transition hover:border-sky-400 hover:text-sky-600 dark:border-white/10 dark:hover:text-sky-300"
+                onClick={() => setActiveTech("All")}
+                className="mt-5 min-h-11 rounded-xl border border-slate-300 px-5 text-sm font-semibold transition hover:border-sky-400 hover:text-sky-600 dark:border-white/10 dark:hover:text-sky-300"
               >
-                Clear filters
+                Clear filter
               </button>
             </div>
           ) : (
-            <div className="mt-6 grid gap-6 md:grid-cols-2">
-              {filteredProjects.map((project, index) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  featured={showFeatured && index === 0}
-                  onOpen={setSelected}
-                />
+            <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} onOpen={setSelected} />
               ))}
             </div>
+          )}
+        </section>
+
+        {/* Technologies */}
+        <section id="technologies" className="scroll-mt-24">
+          <h2 className="text-2xl font-semibold tracking-tight">Technologies</h2>
+          {technologies.length > 0 ? (
+            <>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Select a technology to filter the projects above.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3" role="group" aria-label="Filter projects by technology">
+                {technologies.map(({ name, count }) => (
+                  <TechChip
+                    key={name}
+                    name={name}
+                    count={count}
+                    active={activeTech === name}
+                    onToggle={() => {
+                      setActiveTech(activeTech === name ? "All" : name);
+                      if (activeTech !== name) {
+                        document.getElementById("projects")?.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No technologies listed yet.</p>
+          )}
+        </section>
+
+        {/* Transcripts */}
+        <section id="transcripts" className="scroll-mt-24">
+          <h2 className="text-2xl font-semibold tracking-tight">Transcripts</h2>
+          {transcripts.length > 0 ? (
+            <ul className="mt-5 grid max-w-xl gap-3">
+              {transcripts.map((transcript, index) => (
+                <TranscriptRow key={transcript.id ?? index} transcript={transcript} index={index} />
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No transcripts available yet.</p>
           )}
         </section>
       </div>
 
       {/* --------------------------------- Footer -------------------------------- */}
-      <footer className="border-t border-slate-200 bg-white dark:border-white/10 dark:bg-[#06142e]">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-8 text-center sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:text-left">
+      <footer className="border-t border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-[#06142e]">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5 py-12 text-center sm:flex-row sm:justify-between sm:px-8 sm:text-left">
           <Link
             href="/"
             className="inline-flex min-h-11 items-center justify-center gap-2 text-sm font-bold text-slate-700 transition hover:text-sky-600 dark:text-slate-200 dark:hover:text-sky-300 sm:justify-start"
           >
-            <Image src={icon} alt="" width={18} height={18} /> Logos College
+            <Image src={icon} alt="" width={20} height={20} /> Logos College
           </Link>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             © {new Date().getFullYear()} Logos College. Student portfolio showcase.
@@ -640,28 +469,66 @@ function TechChip({
   count,
   active,
   onToggle,
-  className = "",
 }: {
   name: string;
   count: number;
   active: boolean;
   onToggle: () => void;
-  className?: string;
 }) {
   return (
     <button
       type="button"
       aria-pressed={active}
       onClick={onToggle}
-      className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/25 ${
+      className={`inline-flex h-10 items-center gap-2 rounded-xl px-5 text-sm font-medium transition focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/25 ${
         active
           ? "bg-gradient-to-r from-blue-600 to-sky-500 text-white shadow-md shadow-blue-600/25"
           : "bg-slate-100 text-slate-700 hover:bg-sky-50 hover:text-sky-700 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-sky-500/10 dark:hover:text-sky-300"
-      } ${className}`}
+      }`}
     >
       {name}
-      <span className={active ? "text-sky-100" : "text-slate-400"}>{count}</span>
+      <span className={`text-xs ${active ? "text-sky-100" : "text-slate-400"}`}>{count}</span>
     </button>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                Transcript row                              */
+/* -------------------------------------------------------------------------- */
+
+function TranscriptRow({ transcript, index }: { transcript: Transcript; index: number }) {
+  const href = isLinkableUrl(transcript.file_url) ? transcript.file_url! : null;
+  const label = transcript.title || `Transcript ${index + 1}`;
+
+  const content = (
+    <>
+      <span className="flex min-w-0 items-center gap-3">
+        <FileText className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" aria-hidden />
+        <span className="truncate">{label}</span>
+      </span>
+      {href && <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />}
+    </>
+  );
+
+  const rowClass =
+    "flex h-12 items-center justify-between gap-3 rounded-xl bg-slate-100 px-4 text-sm font-medium text-slate-700 dark:bg-white/5 dark:text-slate-200";
+
+  return (
+    <li>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${rowClass} transition hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 dark:hover:bg-sky-500/10 dark:hover:text-sky-300`}
+        >
+          {content}
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      ) : (
+        <div className={rowClass}>{content}</div>
+      )}
+    </li>
   );
 }
 
@@ -669,105 +536,38 @@ function TechChip({
 /*                                Project card                                */
 /* -------------------------------------------------------------------------- */
 
-function ProjectCard({
-  project,
-  featured,
-  onOpen,
-}: {
-  project: Project;
-  featured: boolean;
-  onOpen: (project: Project) => void;
-}) {
+function ProjectCard({ project, onOpen }: { project: Project; onOpen: (project: Project) => void }) {
   const tech = getTechnologies(project.technologies);
-  const liveUrl = isExternalUrl(project.project_url) ? project.project_url! : null;
-  const maxTech = featured ? 8 : 4;
 
   return (
     // The title button stretches over the whole card (after:absolute), so the card has a single tab stop.
-    <article
-      className={`group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 focus-within:ring-4 focus-within:ring-sky-500/30 hover:-translate-y-1 hover:border-sky-300 hover:shadow-xl hover:shadow-blue-950/[0.08] motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-white/10 dark:bg-[#0d1729] dark:hover:border-sky-400/30 ${
-        featured ? "md:col-span-2 md:flex-row" : ""
-      }`}
-    >
-      <div
-        className={`relative overflow-hidden bg-slate-100 dark:bg-slate-900 ${featured ? "md:w-1/2" : ""}`}
-      >
-        <div className={`aspect-[16/10] w-full ${featured ? "md:aspect-auto md:h-full md:min-h-[20rem]" : ""}`}>
-          {project.image_url ? (
-            <ProjectImage src={project.image_url} title={project.title} fit="cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/40 dark:to-blue-950/30">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-sky-600 shadow-sm dark:bg-white/5 dark:text-sky-300">
-                <Code2 className="h-6 w-6" aria-hidden />
-              </div>
-            </div>
-          )}
-        </div>
-        {featured && (
-          <span className="absolute left-3 top-3 rounded-full bg-black/50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-md">
-            Featured
-          </span>
+    <article className="group relative min-w-0 rounded-2xl focus-within:ring-4 focus-within:ring-sky-500/30">
+      <div className="relative aspect-[208/188] overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200 transition duration-300 group-hover:-translate-y-1 group-hover:shadow-xl group-hover:shadow-blue-950/10 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0 dark:bg-white/5 dark:ring-white/10">
+        {project.image_url ? (
+          <ProjectImage src={project.image_url} title={project.title} fit="cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Code2 className="h-8 w-8 text-sky-500/70 dark:text-sky-300/60" aria-hidden />
+          </div>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
-        <h3 className={`font-bold leading-snug tracking-tight ${featured ? "text-xl sm:text-2xl" : "text-lg"}`}>
-          <button
-            type="button"
-            onClick={() => onOpen(project)}
-            aria-haspopup="dialog"
-            className="cursor-pointer text-left transition-colors after:absolute after:inset-0 after:content-[''] group-hover:text-sky-600 focus:outline-none dark:group-hover:text-sky-300"
-          >
-            {project.title}
-          </button>
-        </h3>
-
-        <p
-          className={`mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400 ${
-            featured ? "line-clamp-5" : "line-clamp-3"
-          }`}
+      <h3 className="mt-3 line-clamp-1 text-base font-semibold leading-snug tracking-tight">
+        <button
+          type="button"
+          onClick={() => onOpen(project)}
+          aria-haspopup="dialog"
+          className="cursor-pointer text-left transition-colors after:absolute after:inset-0 after:content-[''] group-hover:text-sky-600 focus:outline-none dark:group-hover:text-sky-300"
         >
-          {project.description || "A project built as part of this student’s practical work."}
+          {project.title}
+        </button>
+      </h3>
+
+      {tech.length > 0 && (
+        <p className="mt-1 line-clamp-1 text-sm text-slate-500 dark:text-slate-400">
+          {tech.slice(0, 4).join(" · ")}
         </p>
-
-        {tech.length > 0 && (
-          <ul aria-label="Technologies used" className="mt-4 flex flex-wrap gap-1.5">
-            {tech.slice(0, maxTech).map((item) => (
-              <li
-                key={item}
-                className="rounded-md bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-200"
-              >
-                {item}
-              </li>
-            ))}
-            {tech.length > maxTech && (
-              <li className="rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-400">
-                +{tech.length - maxTech}
-              </li>
-            )}
-          </ul>
-        )}
-
-        <div className="mt-auto flex items-center gap-4 pt-6">
-          <span
-            aria-hidden
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 transition group-hover:text-sky-600 dark:text-slate-200 dark:group-hover:text-sky-300"
-          >
-            Details <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </span>
-          {liveUrl && (
-            <a
-              href={liveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`relative z-10 ml-auto inline-flex h-10 items-center gap-1.5 rounded-lg px-4 text-xs font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30 ${PRIMARY_BTN}`}
-            >
-              Live project <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
-          )}
-        </div>
-      </div>
+      )}
     </article>
   );
 }
@@ -852,9 +652,7 @@ function ProjectModal({ project, onClose }: { project: Project; onClose: () => v
 
         <div className="p-6 sm:p-8">
           <div aria-hidden className="mb-4 h-1 w-14 rounded-full bg-gradient-to-r from-sky-400 to-blue-600" />
-          <h2 className={`${serif.className} pr-10 text-2xl font-bold tracking-tight sm:text-3xl`}>
-            {project.title}
-          </h2>
+          <h2 className="pr-10 text-2xl font-semibold tracking-tight sm:text-3xl">{project.title}</h2>
 
           {tech.length > 0 && (
             <ul aria-label="Technologies used" className="mt-4 flex flex-wrap gap-1.5">
