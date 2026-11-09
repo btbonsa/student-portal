@@ -3,6 +3,22 @@ function sanitizeErrorMessage(message: string): string {
   return message.replace(/https?:\/\/[^\s"'()]+/gi, '[internal]');
 }
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+export function isAuthError(err: unknown): boolean {
+  if (err instanceof ApiError) return err.status === 401 || err.status === 403;
+  const msg = err instanceof Error ? err.message : "";
+  return /invalid or expired token|unauthorized|token expired/i.test(msg);
+}
+
 async function apiRequest <T>(
   endpoint: string,
   options: RequestInit = {},
@@ -34,7 +50,7 @@ async function apiRequest <T>(
   if (!response.ok) {
     const raw =
       data.error || data.message || `API request failed with status ${response.status}`;
-    throw new Error(sanitizeErrorMessage(String(raw)));
+    throw new ApiError(sanitizeErrorMessage(String(raw)), response.status);
   }
 
   return data;

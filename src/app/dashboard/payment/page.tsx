@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getToken } from "@/lib/auth";
+import { clearAuth, getToken } from "@/lib/auth";
+import { isAuthError } from "@/services/apiservices";
 import { getMyRegistration } from "../../../services/registrationservices";
 import { uploadPayment } from "../../../services/paymentservices";
 import type { Registration } from "../../../services/registrationservices";
@@ -227,6 +228,11 @@ export default function PaymentPage() {
         const data = await getMyRegistration(token);
         setRegistration(data);
       } catch (err) {
+        if (isAuthError(err)) {
+          clearAuth();
+          router.replace("/login");
+          return;
+        }
         setError(
           err instanceof Error ? err.message : "Failed to load registration"
         );
@@ -353,6 +359,11 @@ export default function PaymentPage() {
         router.push("/dashboard/pending");
       }, 1500);
     } catch (err) {
+      if (isAuthError(err)) {
+        clearAuth();
+        router.replace("/login");
+        return;
+      }
       setError(err instanceof Error ? err.message : "Payment upload failed.");
     } finally {
       setSubmitting(false);
