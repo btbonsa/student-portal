@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
 const links = [
@@ -13,6 +14,7 @@ const links = [
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
   const close = () => setIsOpen(false);
 
   // At the top the bar is a transparent overlay; once scrolled it becomes a white pill
@@ -23,12 +25,26 @@ function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Close the mobile menu on navigation or Escape
+  useEffect(() => {
+    close();
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
+
   return (
     <nav aria-label="Main" className="fixed inset-x-0 top-0 z-50">
       <div
         className={`relative mx-auto flex max-w-6xl items-center justify-between px-5 transition-all duration-300 sm:px-8 ${
           scrolled
-            ? "mt-3 h-14 rounded-full border border-slate-200 bg-white px-4 shadow-xl shadow-blue-950/10 sm:px-5"
+            ? "mt-3 h-14 rounded-full border border-slate-200 bg-white/95 px-4 shadow-lg shadow-blue-950/10 backdrop-blur-md sm:px-5"
             : "h-16"
         }`}
       >
@@ -55,7 +71,10 @@ function Navbar() {
                 scrolled ? "text-slate-900" : "text-white"
               }`}
             >
-              Logos <span className={scrolled ? "text-blue-600" : "text-blue-300"}>College</span>
+              Logos{" "}
+              <span className={scrolled ? "text-blue-600" : "text-blue-300"}>
+                College
+              </span>
             </span>
             <span
               className={`hidden text-xs transition-colors duration-300 sm:block ${
@@ -84,7 +103,7 @@ function Navbar() {
           ))}
           <Link
             href="/register"
-            className="ml-1 rounded-full bg-blue-400 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-blue-400 transition-all hover:-translate-y-px hover:bg-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            className="ml-1 rounded-full bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition-all hover:-translate-y-px hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           >
             Register
           </Link>
@@ -106,14 +125,14 @@ function Navbar() {
           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        {/* Mobile menu */}
+        {/* Mobile menu — floats below the bar so it works in both states */}
         {isOpen && (
           <div
             id="mobile-menu"
-            className={`absolute inset-x-0 top-full flex flex-col gap-1 rounded-b-3xl px-5 pb-4 pt-2 sm:hidden ${
+            className={`absolute inset-x-3 top-full z-50 mt-2 flex flex-col gap-1 rounded-3xl border p-2 shadow-2xl shadow-blue-950/20 backdrop-blur-xl sm:hidden ${
               scrolled
-                ? "border-b border-slate-200 bg-white shadow-xl shadow-blue-950/10"
-                : "bg-slate-950/80 backdrop-blur-xl"
+                ? "border-slate-200 bg-white/95"
+                : "border-white/10 bg-[#0a1f3d]/95"
             }`}
           >
             {links.map(({ href, label }) => (
@@ -133,7 +152,7 @@ function Navbar() {
             <Link
               href="/register"
               onClick={close}
-              className="mt-1 rounded-2xl bg-blue-600 px-4 py-3 text-center text-base font-bold text-white transition-colors hover:bg-blue-500"
+              className="mt-1 rounded-2xl bg-blue-600 px-4 py-3 text-center text-base font-bold text-white transition-colors hover:bg-blue-500 "
             >
               Register
             </Link>
