@@ -143,7 +143,7 @@ export default function CourseDetailPage() {
       } catch (err) {
         if (cancelled) return;
         setLoadError(
-          err instanceof Error ? err.message : "Failed to load program."
+          err instanceof Error ? err.message : "Failed to load program.",
         );
       } finally {
         if (!cancelled) setLoading(false);
@@ -239,7 +239,7 @@ export default function CourseDetailPage() {
         return;
       }
       setEnrollError(
-        err instanceof Error ? err.message : "Failed to enroll in program."
+        err instanceof Error ? err.message : "Failed to enroll in program.",
       );
       setEnrolling(false);
     }
@@ -308,7 +308,7 @@ export default function CourseDetailPage() {
               aria-labelledby="program-title"
               className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500"
             >
-              <div className="relative isolate h-[320px] w-full overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-950 sm:h-[420px]">
+              <div className="relative isolate h-[300px] w-full overflow-hidden rounded-3xl bg-gradient-to-br from-blue-800 via-blue-900 to-[#06142e] ring-1 ring-white/10 sm:h-[380px]">
                 {showImage ? (
                   <Image
                     src={imageUrl as string}
@@ -327,9 +327,13 @@ export default function CourseDetailPage() {
                 )}
 
                 {/* Legibility scrim for the title */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#06142e]/90 via-[#06142e]/35 to-[#06142e]/10" />
 
                 <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+                  <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-blue-100 backdrop-blur-md">
+                    <Award className="h-3.5 w-3.5" aria-hidden="true" />
+                    Certificate program
+                  </span>
                   <h1
                     id="program-title"
                     className="max-w-2xl text-balance text-3xl font-black leading-tight tracking-tight text-white sm:text-5xl"
@@ -339,11 +343,17 @@ export default function CourseDetailPage() {
 
                   <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium text-white/90">
                     <span className="inline-flex items-center gap-1.5">
-                      <Clock className="h-4 w-4" aria-hidden="true" />
+                      <Clock
+                        className="h-4 w-4 text-blue-300"
+                        aria-hidden="true"
+                      />
                       {duration}
                     </span>
                     <span className="inline-flex items-center gap-1.5">
-                      <Award className="h-4 w-4" aria-hidden="true" />
+                      <CheckCircle2
+                        className="h-4 w-4 text-blue-300"
+                        aria-hidden="true"
+                      />
                       Certificate on completion
                     </span>
                   </div>
@@ -372,7 +382,7 @@ export default function CourseDetailPage() {
                 {learningOutcomes.map((item) => (
                   <li
                     key={item}
-                    className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5"
+                    className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3.5 transition-colors hover:border-blue-400/50"
                   >
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
                       <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
@@ -413,12 +423,20 @@ export default function CourseDetailPage() {
 
           {/* -------------------------- Sidebar -------------------------- */}
           <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-            <Card className="rounded-3xl border-border/60 shadow-lg shadow-blue-600/5">
+            <Card className="relative overflow-hidden rounded-3xl border-border/60 shadow-lg shadow-blue-600/5">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-blue-400" />
               <CardContent className="space-y-6 p-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Monthly fee</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    Monthly fee
+                  </p>
                   <p className="mt-1 text-4xl font-black tracking-tight">
                     {priceLabel}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {Number.isFinite(fee)
+                      ? "per month, pay to activate"
+                      : "ask the office for pricing"}
                   </p>
                 </div>
 

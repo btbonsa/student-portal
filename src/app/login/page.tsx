@@ -45,7 +45,7 @@ export default function Login() {
     setFieldErrors({});
 
     // Validate raw phone input (without country code)
-    const phoneDigits = phone.replace(/\D/g, "");
+    const phoneDigits = phone.replace(/\D/g, "").replace(/^0+/, "");
     if (phoneDigits.length < 7) {
       setFieldErrors({ phone: "Phone number must be at least 7 digits" });
       setError("Please fix the validation errors below.");
@@ -53,6 +53,11 @@ export default function Login() {
     }
     if (phoneDigits.length > 15) {
       setFieldErrors({ phone: "Phone number must be at most 15 digits" });
+      setError("Please fix the validation errors below.");
+      return;
+    }
+    if (!phoneDigits.startsWith("9")) {
+      setFieldErrors({ phone: "Phone number must start with 9" });
       setError("Please fix the validation errors below.");
       return;
     }
@@ -95,11 +100,17 @@ export default function Login() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Login failed.";
 
-      if (errorMessage.includes("API URL") || errorMessage.includes("configured")) {
+      if (
+        errorMessage.includes("API URL") ||
+        errorMessage.includes("configured")
+      ) {
         setError("Server configuration error. Please contact support.");
       } else if (errorMessage.includes("API returned")) {
         setError("Unable to connect to server. Please try again later.");
-      } else if (errorMessage.includes("phone:") || errorMessage.includes("password:")) {
+      } else if (
+        errorMessage.includes("phone:") ||
+        errorMessage.includes("password:")
+      ) {
         // Parse field-specific errors from backend
         const parsedErrors: Record<string, string> = {};
         const errorParts = errorMessage.split(", ");
@@ -132,106 +143,94 @@ export default function Login() {
         ]}
       />
 
-      <section className="flex items-center justify-center px-5 py-10 sm:px-10">
-        <div className="w-full max-w-md space-y-8 animate-in fade-in duration-700">
+      <section className="flex items-center justify-center px-4 py-5 sm:px-6 lg:px-8">
+        <div className="w-full max-w-sm space-y-4 animate-in fade-in duration-700">
           <MobileBrand />
 
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
-              Welcome back
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400">
-              Sign in to your student portal to continue your journey.
-            </p>
-          </div>
-
-          {error && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 rounded-xl border border-rose-200/70 bg-rose-50 p-3.5 text-sm font-medium text-rose-600 animate-in fade-in slide-in-from-top-2 duration-300 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-400"
-            >
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {error}
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-md shadow-slate-200/30 sm:p-6 dark:border-slate-800/80 dark:bg-slate-900/80 dark:shadow-none">
+            <div className="space-y-0.1 mb-0.5">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-slate-50">
+                Welcome back
+              </h1>
             </div>
-          )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <PhoneField
-              value={phone}
-              onChange={(value) => {
-                setPhone(value);
-                clearFieldError("phone");
-              }}
-              countryCode={countryCode}
-              onCountryChange={setCountryCode}
-              disabled={loading}
-              error={fieldErrors.phone}
-              hint="Enter your phone number without the country code"
-            />
+            {error && (
+              <div
+                role="alert"
+                className="mt-3 flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50/70 p-2.5 text-xs font-medium text-rose-700 animate-in fade-in slide-in-from-top-2 duration-300 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300"
+              >
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-            <PasswordField
-              id="password"
-              name="password"
-              label="Password"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                clearFieldError("password");
-              }}
-              disabled={loading}
-              error={fieldErrors.password}
-              labelAction={
+            <form className="mt-3 space-y-2.5" onSubmit={handleSubmit}>
+              <PhoneField
+                value={phone}
+                onChange={(value) => {
+                  setPhone(value);
+                  clearFieldError("phone");
+                }}
+                countryCode={countryCode}
+                onCountryChange={setCountryCode}
+                disabled={loading}
+                error={fieldErrors.phone}
+                dense
+              />
+
+              <PasswordField
+                id="password"
+                name="password"
+                label="Password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  clearFieldError("password");
+                }}
+                disabled={loading}
+                error={fieldErrors.password}
+                dense
+              >
                 <a
                   href="#"
-                  className="text-xs font-semibold text-blue-600 transition-colors hover:text-blue-500 hover:underline dark:text-blue-400"
+                  className="inline-block pt-0.5 text-xs font-semibold text-blue-600 transition-colors hover:text-blue-500 hover:underline dark:text-blue-400"
                 >
                   Forgot password?
                 </a>
-              }
-            />
+              </PasswordField>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="h-12 w-full gap-2 rounded-xl bg-blue-600 text-base font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-500 hover:shadow-xl hover:shadow-blue-600/30 active:scale-[0.99]"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  Sign in
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </form>
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-xs font-medium text-slate-400">
-              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-              New student?
-              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-            </div>
-            <Link href="/register" className="block">
               <Button
-                type="button"
-                variant="outline"
-                className="h-12 w-full rounded-xl border-slate-200 text-base font-semibold hover:bg-white hover:border-blue-300 hover:text-blue-600 transition-all dark:border-slate-800 dark:hover:bg-slate-900 dark:hover:border-blue-800 dark:hover:text-blue-400"
+                type="submit"
+                disabled={loading}
+                className="h-9 w-full gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.99] mt-4"
               >
-                Create new account
+                {loading ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign in
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </>
+                )}
               </Button>
-            </Link>
+            </form>
+
+            <div className="mt-4 border-t border-slate-100 pt-3 text-center text-xs text-slate-500 dark:border-slate-800/80 dark:text-slate-400">
+              New student?{" "}
+              <Link
+                href="/register"
+                className="font-semibold text-blue-600 hover:underline focus-visible:outline-none dark:text-blue-400"
+              >
+                Create an account
+              </Link>
+            </div>
           </div>
 
-          <p className="flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
-            <ShieldCheck className="h-4 w-4 text-blue-600" />
-            Secure SSL encrypted connection
-          </p>
         </div>
       </section>
     </main>

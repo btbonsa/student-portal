@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Image from "next/image";
 import type { StaticImageData } from "next/image";
 import Link from "next/link";
@@ -20,7 +20,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   BadgeCheck,
-  ChevronDown,
   ClipboardCheck,
   Clock,
   CreditCard,
@@ -95,7 +94,12 @@ const courses: Course[] = [
     duration: "3 Months",
     description:
       "Build practical hardware diagnostic skills, component replacement, and repair techniques for modern mobile devices.",
-    skills: ["Hardware maintenance", "Software maintenance", "Customer handling", "How to save money"],
+    skills: [
+      "Hardware maintenance",
+      "Software maintenance",
+      "Customer handling",
+      "How to save money",
+    ],
     image: MobileMaintenance,
     alt: "Mobile phone maintenance course",
   },
@@ -105,17 +109,41 @@ const features = [
   {
     icon: Wrench,
     title: "100% Practical Training",
-    description: "Hands-on experience with real equipment and practical projects right from your first day.",
+    description:
+      "Hands-on experience with real equipment and practical projects right from your first day.",
   },
   {
     icon: BadgeCheck,
     title: "Industry Expert Instructors",
-    description: "Learn directly from active professionals with real-world technical expertise.",
+    description:
+      "Learn directly from active professionals with real-world technical expertise.",
   },
   {
     icon: Users,
     title: "Small Class Sizes",
-    description: "Focused lab sessions ensuring personalized 1-on-1 feedback and skill mastery.",
+    description:
+      "Focused lab sessions ensuring personalized 1-on-1 feedback and skill mastery.",
+  },
+];
+
+const stepTints = [
+  {
+    card: "bg-blue-50 border-blue-200/70 dark:bg-blue-950/30 dark:border-blue-900",
+    chip: "bg-blue-600 text-white dark:bg-blue-500",
+    label: "text-blue-600 dark:text-blue-400",
+    hover: "hover:border-blue-400 dark:hover:border-blue-700",
+  },
+  {
+    card: "bg-orange-50 border-orange-200/70 dark:bg-orange-950/30 dark:border-orange-900",
+    chip: "bg-orange-600 text-white dark:bg-orange-500",
+    label: "text-orange-600 dark:text-orange-400",
+    hover: "hover:border-orange-400 dark:hover:border-orange-700",
+  },
+  {
+    card: "bg-emerald-50 border-emerald-200/70 dark:bg-emerald-950/30 dark:border-emerald-900",
+    chip: "bg-emerald-600 text-white dark:bg-emerald-500",
+    label: "text-emerald-600 dark:text-emerald-400",
+    hover: "hover:border-emerald-400 dark:hover:border-emerald-700",
   },
 ];
 
@@ -128,12 +156,14 @@ const steps = [
   {
     icon: CreditCard,
     title: "Register & pay",
-    description: "Create your account, transfer the fee and upload your receipt.",
+    description:
+      "Create your account, transfer the fee and upload your receipt.",
   },
   {
     icon: ClipboardCheck,
     title: "Get verified",
-    description: "An admin confirms your payment and activates your registration.",
+    description:
+      "An admin confirms your payment and activates your registration.",
   },
 ];
 
@@ -150,13 +180,21 @@ const marqueeSkills = [
   "Sewing",
 ];
 
-const testimonials = [
+const testimonials: {
+  quote: string;
+  name: string;
+  role: string;
+  initials: string;
+  image?: string;
+}[] = [
   {
     quote:
       "The hands-on labs made all the difference. I walked in with zero experience and left the mobile maintenance program confident enough to open my own repair shop.",
-    name: "Hanna G.",
+    name: "Bonsa T.",
     role: "Mobile Maintenance graduate",
     initials: "HG",
+    image:
+      "https://res.cloudinary.com/dzqma6sfk/image/upload/v1794247413/college-registration/student-profiles/fqoua0mac88a3mxoyzax.jpg",
   },
   {
     quote:
@@ -164,35 +202,31 @@ const testimonials = [
     name: "Dawit M.",
     role: "Fashion Design graduate",
     initials: "DM",
+    image:
+      "https://res.cloudinary.com/dzqma6sfk/image/upload/v1791910227/college-registration/student-profiles/aybspnbubc9nfwyzdhv9.png",
   },
   {
     quote:
       "Small classes meant I got real feedback on my photography every single week. The online portal made registration and payments completely stress-free.",
-    name: "Sara T.",
+    name: "Melkamu L.",
     role: "Camera & Media student",
     initials: "ST",
+    image:
+      "https://res.cloudinary.com/dzqma6sfk/image/upload/v1791979789/college-registration/student-profiles/skrgjmlwek2bsrcnmf1c.jpg",
   },
 ];
 
 /** Section heading — always left-aligned. */
 function SectionHeading({
-  eyebrow,
   title,
   description,
 }: {
-  eyebrow?: string;
   title: string;
   description?: string;
 }) {
   return (
     <div className="max-w-2xl text-left">
-      {eyebrow && (
-        <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
-          <span aria-hidden className="h-px w-6 bg-gradient-to-r from-blue-400 to-blue-600" />
-          {eyebrow}
-        </p>
-      )}
-      <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
+      <h2 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">
         {title}
       </h2>
       {description && (
@@ -229,8 +263,6 @@ function ScrollSection({
 }
 
 export default function Home() {
-  const [openStep, setOpenStep] = useState<number | null>(null);
-
   useEffect(() => {
     getPrograms().catch(() => {});
   }, []);
@@ -255,7 +287,7 @@ export default function Home() {
             {[...marqueeSkills, ...marqueeSkills].map((skill, i) => (
               <span
                 key={`${skill}-${i}`}
-                className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-blue-400/30 bg-blue px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-blue-400 dark:border-blue-400/20 dark:bg-blue-950/40 dark:text-blue-300"
+                className="flex items-center gap-2 whitespace-nowrap rounded-lg border border-blue-400/30 bg-blue-600/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-300"
               >
                 {skill}
               </span>
@@ -267,7 +299,6 @@ export default function Home() {
         <ScrollSection className="relative border-y border-slate-200/80 bg-gradient-to-b from-blue-50/50 via-slate-50 to-slate-50 px-5 py-16 dark:border-slate-800/80 dark:from-blue-950/20 dark:via-slate-950 dark:to-slate-950 sm:py-20 lg:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHeading
-              eyebrow="Why Logos College"
               title="Built for hands-on learners"
               description="Real equipment, real professionals and small groups, so you learn skills you can use straight away."
             />
@@ -283,8 +314,8 @@ export default function Home() {
                     {/* Top accent line */}
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                    <div className="relative mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition-colors duration-300 group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-950/50 dark:text-blue-300 dark:ring-blue-900 dark:group-hover:bg-blue-500 dark:group-hover:text-white">
-                      <Icon className="h-6 w-6" aria-hidden />
+                    <div className="relative mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition-colors duration-300 group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-950/50 dark:text-blue-300 dark:ring-blue-900 dark:group-hover:bg-blue-500 dark:group-hover:text-white">
+                      <Icon className="h-5 w-5" aria-hidden />
                     </div>
 
                     <h3 className="relative mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">
@@ -305,7 +336,6 @@ export default function Home() {
           <div className="mx-auto max-w-6xl space-y-10 sm:space-y-12">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <SectionHeading
-                eyebrow="Programs"
                 title="Featured Programs"
                 description="Tap any card below to explore and start your online registration."
               />
@@ -318,7 +348,10 @@ export default function Home() {
                 })}
               >
                 Browse all programs
-                <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+                <ArrowRight
+                  className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-1"
+                  aria-hidden
+                />
               </Link>
             </div>
 
@@ -329,53 +362,60 @@ export default function Home() {
                   href={`/courses/${course.id}`}
                   className="group block rounded-3xl focus:outline-none"
                 >
-                  <Card className="relative flex h-full flex-col overflow-hidden rounded-3xl border-border/60 bg-card shadow-md transition-all duration-500 hover:-translate-y-2 hover:border-blue-400/60 hover:shadow-2xl hover:shadow-blue-500/15 group-focus-visible:ring-2 group-focus-visible:ring-blue-400 group-focus-visible:ring-offset-2">
+                  <Card className="relative flex h-full flex-col overflow-hidden rounded-3xl border-border/60 bg-card shadow-sm transition-all duration-500 hover:-translate-y-1.5 hover:border-blue-400/50 hover:shadow-xl hover:shadow-blue-500/10 group-focus-visible:ring-2 group-focus-visible:ring-blue-400 group-focus-visible:ring-offset-2">
                     {/* Image */}
-                    <div className="relative h-60 w-full overflow-hidden bg-gradient-to-br from-blue-950/40 to-slate-900 sm:h-64">
+                    <div className="relative h-56 w-full overflow-hidden bg-gradient-to-br from-blue-950/40 to-slate-900 sm:h-60">
                       <Image
                         src={course.image}
                         alt={course.alt}
                         fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#06142e]/95 via-[#06142e]/40 to-[#06142e]/10" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#06142e]/70 via-transparent to-transparent" />
 
-                      {/* Top row */}
                       <div className="absolute left-3 right-3 top-3 z-10 flex items-center justify-between">
                         <Badge className="gap-1 border border-white/15 bg-black/40 text-[11px] font-medium text-white shadow-sm backdrop-blur-md">
-                          <Sparkles className="h-3 w-3 text-blue-400" aria-hidden />
+                          <Sparkles
+                            className="h-3 w-3 text-blue-400"
+                            aria-hidden
+                          />
                           {course.category}
                         </Badge>
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-500">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-600">
                           <ArrowUpRight className="h-5 w-5" aria-hidden />
                         </div>
                       </div>
 
-                      {/* Title + duration */}
-                      <div className="absolute inset-x-4 bottom-4 z-10 space-y-2">
-                        <h3 className="line-clamp-2 text-xl font-bold tracking-tight text-white drop-shadow-sm transition-colors group-hover:text-blue-200">
-                          {course.title}
-                        </h3>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-100 backdrop-blur-md">
-                          <Clock className="h-3.5 w-3.5 text-blue-400" aria-hidden />
-                          {course.duration}
-                        </span>
-                      </div>
+                      <span className="absolute bottom-3 left-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md">
+                        <Clock
+                          className="h-3.5 w-3.5 text-blue-400"
+                          aria-hidden
+                        />
+                        {course.duration}
+                      </span>
                     </div>
 
                     {/* Body */}
                     <CardContent className="flex flex-1 flex-col justify-between gap-4 p-6 text-left">
-                      <p className="line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                        {course.description}
-                      </p>
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold tracking-tight text-slate-900 transition-colors group-hover:text-blue-700 dark:text-slate-100 dark:group-hover:text-blue-300">
+                          {course.title}
+                        </h3>
+                        <p className="line-clamp-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                          {course.description}
+                        </p>
+                      </div>
 
-                      <ul aria-label={`${course.title} skills`} className="flex flex-wrap gap-2">
+                      <ul
+                        aria-label={`${course.title} skills`}
+                        className="flex flex-wrap gap-2"
+                      >
                         {course.skills.map((skill) => (
                           <li key={skill}>
                             <Badge
                               variant="outline"
-                              className="border-blue-400/30 bg-blue-50/70 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                              className="border-slate-200 bg-slate-50/70 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300"
                             >
                               {skill}
                             </Badge>
@@ -384,8 +424,11 @@ export default function Home() {
                       </ul>
 
                       <div className="flex items-center justify-between border-t border-border/40 pt-3 text-xs font-bold text-slate-500 transition-colors group-hover:text-blue-600 dark:text-slate-400 dark:group-hover:text-blue-400">
-                        <span>View course details</span>
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+                        <span>View program details</span>
+                        <ArrowRight
+                          className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                          aria-hidden
+                        />
                       </div>
                     </CardContent>
                   </Card>
@@ -399,68 +442,40 @@ export default function Home() {
         <ScrollSection className="border-y border-slate-200/80 bg-white px-5 py-16 dark:border-slate-800/80 dark:bg-slate-900/40 sm:py-20 lg:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHeading
-              eyebrow="How it works"
               title="Start in three simple steps"
               description="From choosing a program to confirmed registration, the whole process happens online."
             />
 
-            <ol className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-3 md:gap-10">
+            <ol className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-3 md:gap-8">
               {steps.map((step, i) => {
                 const Icon = step.icon;
+                const tint = stepTints[i];
                 return (
-                  <li key={step.title} className="group relative">
-                    <div className="relative flex h-full flex-col gap-5 overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-blue-500 to-blue-400 p-6 text-left text-white shadow-lg shadow-blue-950/20 ring-1 ring-white/10 transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-2xl group-hover:shadow-blue-950/30 sm:p-7">
+                  <li
+                    key={step.title}
+                    className={`group relative flex h-full flex-col gap-5 overflow-hidden rounded-3xl border p-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-7 ${tint.card} ${tint.hover}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
                       <span
-                        aria-hidden
-                        className="pointer-events-none absolute -right-4 -top-8 hidden select-none text-[10rem] font-black leading-none text-white/10 sm:block"
+                        className={`flex h-11 w-11 items-center justify-center rounded-2xl shadow-sm transition-transform duration-300 group-hover:scale-110 ${tint.chip}`}
                       >
-                        {i + 1}
+                        <Icon className="h-5 w-5" aria-hidden />
                       </span>
-
-                      <div className="relative flex items-center justify-between gap-3">
-                        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
-                          <Icon className="h-6 w-6" aria-hidden />
-                        </span>
-                        <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-blue-100">
-                          Step {String(i + 1).padStart(2, "0")}
-                        </span>
-                      </div>
-
-                      <div className="relative">
-                        <h3 className="text-lg font-bold">{step.title}</h3>
-                        <p
-                          className={`mt-1 text-sm leading-relaxed text-blue-50 ${
-                            openStep === i ? "block" : "hidden"
-                          } md:block`}
-                        >
-                          {step.description}
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setOpenStep(openStep === i ? null : i)}
-                        aria-expanded={openStep === i}
-                        className="relative mt-auto flex items-center gap-1.5 pt-1 text-xs font-bold text-blue-100 transition-colors hover:text-white md:hidden"
+                      <span
+                        className={`text-xs font-extrabold uppercase tracking-[0.1em] ${tint.label}`}
                       >
-                        {openStep === i ? "Show less" : "View details"}
-                        <ChevronDown
-                          className={`h-4 w-4 transition-transform duration-300 ${
-                            openStep === i ? "rotate-180" : ""
-                          }`}
-                          aria-hidden
-                        />
-                      </button>
+                        Step {String(i + 1).padStart(2, "0")}
+                      </span>
                     </div>
 
-                    {i < steps.length - 1 && (
-                      <span
-                        aria-hidden
-                        className="absolute -right-9 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-blue-200 bg-white text-blue-600 shadow-lg transition-transform duration-300 group-hover:translate-x-1 md:flex"
-                      >
-                        <ArrowRight className="h-4 w-4" aria-hidden />
-                      </span>
-                    )}
+                    <div className="relative">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                        {step.title}
+                      </h3>
+                      <p className="mt-1 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400 sm:text-sm">
+                        {step.description}
+                      </p>
+                    </div>
                   </li>
                 );
               })}
@@ -472,7 +487,6 @@ export default function Home() {
         <ScrollSection className="px-5 py-16 sm:py-20 lg:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHeading
-              eyebrow="Student Stories"
               title="What our graduates say"
               description="Real experiences from students who turned practical training into real opportunities."
             />
@@ -507,9 +521,18 @@ export default function Home() {
                   </div>
 
                   <figcaption className="relative flex items-center gap-3 border-t border-slate-200/80 pt-4 dark:border-slate-800">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-sm font-bold text-white">
-                      {t.initials}
-                    </span>
+                    {t.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- testimonial avatars come from arbitrary URLs
+                      <img
+                        src={t.image}
+                        alt={t.name}
+                        className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-blue-100 dark:ring-blue-900"
+                      />
+                    ) : (
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-sm font-bold text-white">
+                        {t.initials}
+                      </span>
+                    )}
                     <div>
                       <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
                         {t.name}
@@ -528,8 +551,14 @@ export default function Home() {
         {/* Call-to-action banner */}
         <ScrollSection className="px-5 py-16 sm:py-20 lg:py-24">
           <div className="relative isolate mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 overflow-hidden rounded-3xl border border-blue-950 bg-[#06142e] p-6 text-left text-white shadow-2xl shadow-blue-950/40 sm:flex-row sm:items-center sm:gap-8 sm:p-8 md:p-12">
-            <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 -z-10 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl" />
-            <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/4 -z-10 h-64 w-64 rounded-full bg-blue-400/20 blur-3xl" />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-16 -top-16 -z-10 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-24 left-1/4 -z-10 h-64 w-64 rounded-full bg-blue-400/20 blur-3xl"
+            />
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 -z-10 opacity-[0.06]"
@@ -537,8 +566,10 @@ export default function Home() {
                 backgroundImage:
                   "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
                 backgroundSize: "44px 44px",
-                maskImage: "linear-gradient(to bottom right, black, transparent 70%)",
-                WebkitMaskImage: "linear-gradient(to bottom right, black, transparent 70%)",
+                maskImage:
+                  "linear-gradient(to bottom right, black, transparent 70%)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom right, black, transparent 70%)",
               }}
             />
 
@@ -553,7 +584,8 @@ export default function Home() {
                 </span>
               </h2>
               <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
-                Create your account today and start building practical technical skills with Logos College.
+                Create your account today and start building practical technical
+                skills with Logos College.
               </p>
             </div>
 
@@ -566,7 +598,10 @@ export default function Home() {
               })}
             >
               Start Registration Now
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+              <ArrowRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                aria-hidden
+              />
             </Link>
           </div>
         </ScrollSection>
@@ -578,7 +613,10 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-8 border-b border-slate-200 pb-8 text-left dark:border-slate-800 sm:grid-cols-2 sm:pb-10 lg:grid-cols-4">
             {/* Identity */}
             <div className="space-y-3">
-              <Link href="/" className="inline-block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400">
+              <Link
+                href="/"
+                className="inline-block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400"
+              >
                 <Image
                   src="/assets/logo.png"
                   alt="Logos College"
@@ -588,7 +626,8 @@ export default function Home() {
                 />
               </Link>
               <p className="max-w-xs text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                Empowering individuals through practical vocational education and career-focused technical training.
+                Empowering individuals through practical vocational education
+                and career-focused technical training.
               </p>
             </div>
 
@@ -622,18 +661,30 @@ export default function Home() {
               </h3>
               <ul className="space-y-3 text-xs">
                 <li className="flex items-start gap-2.5">
-                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" aria-hidden />
+                  <Phone
+                    className="mt-0.5 h-4 w-4 shrink-0 text-blue-500"
+                    aria-hidden
+                  />
                   <div className="flex flex-col gap-1">
-                    <a href="tel:+251947788899" className="transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                    <a
+                      href="tel:+251947788899"
+                      className="transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                    >
                       +251 947788899
                     </a>
-                    <a href="tel:+251947628899" className="transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                    <a
+                      href="tel:+251947628899"
+                      className="transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                    >
                       +251 947628899
                     </a>
                   </div>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" aria-hidden />
+                  <Mail
+                    className="mt-0.5 h-4 w-4 shrink-0 text-blue-500"
+                    aria-hidden
+                  />
                   <a
                     href="mailto:info@logoscollege.edu.et"
                     className="break-all transition-colors hover:text-blue-600 dark:hover:text-blue-400"
@@ -642,7 +693,10 @@ export default function Home() {
                   </a>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" aria-hidden />
+                  <MapPin
+                    className="mt-0.5 h-4 w-4 shrink-0 text-blue-500"
+                    aria-hidden
+                  />
                   <span>Holeta 44, Ethiopia</span>
                 </li>
               </ul>
@@ -690,12 +744,20 @@ export default function Home() {
 
           {/* Sub-footer */}
           <div className="flex flex-col items-start justify-between gap-4 pt-6 text-xs text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center">
-            <p>© {new Date().getFullYear()} Logos College. All rights reserved.</p>
+            <p>
+              © {new Date().getFullYear()} Logos College. All rights reserved.
+            </p>
             <div className="flex items-center gap-6">
-              <Link href="/privacy" className="transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+              <Link
+                href="/privacy"
+                className="transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+              >
                 Privacy Policy
               </Link>
-              <Link href="/terms" className="transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+              <Link
+                href="/terms"
+                className="transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+              >
                 Terms of Service
               </Link>
             </div>

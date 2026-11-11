@@ -14,9 +14,26 @@ export const fieldClass = (hasError?: boolean) =>
     hasError ? "border-red-500" : "border-slate-200 dark:border-slate-800"
   }`;
 
-export function FieldLabel({ htmlFor, children }: { htmlFor: string; children: ReactNode }) {
+/** Compact input styling matching the dense auth forms. */
+export const denseFieldClass = (hasError?: boolean) =>
+  `h-9 rounded-lg bg-white px-3 text-xs shadow-sm dark:bg-slate-900 focus-visible:ring-2 focus-visible:ring-blue-500 ${
+    hasError ? "border-red-500" : "border-slate-200 dark:border-slate-800"
+  }`;
+
+export function FieldLabel({
+  htmlFor,
+  children,
+  className = "",
+}: {
+  htmlFor: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <label htmlFor={htmlFor} className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+    <label
+      htmlFor={htmlFor}
+      className={`text-xs font-medium text-slate-500 dark:text-slate-400 ${className}`}
+    >
       {children}
     </label>
   );
@@ -25,7 +42,10 @@ export function FieldLabel({ htmlFor, children }: { htmlFor: string; children: R
 export function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p className="flex items-center gap-1.5 text-xs font-medium text-red-500" role="alert">
+    <p
+      className="flex items-center gap-1.5 text-xs font-medium text-red-500"
+      role="alert"
+    >
       <AlertCircle className="h-3.5 w-3.5 shrink-0" />
       {message}
     </p>
@@ -40,6 +60,8 @@ interface PhoneFieldProps {
   disabled?: boolean;
   error?: string;
   hint?: string;
+  /** Compact sizing to match dense forms */
+  dense?: boolean;
 }
 
 export function PhoneField({
@@ -50,6 +72,7 @@ export function PhoneField({
   disabled,
   error,
   hint,
+  dense = false,
 }: PhoneFieldProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -58,7 +81,10 @@ export function PhoneField({
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -79,13 +105,21 @@ export function PhoneField({
             aria-haspopup="listbox"
             aria-expanded={open}
             onClick={() => setOpen((prev) => !prev)}
-            className={`flex h-11 items-center gap-1.5 rounded-l-xl border border-r-0 bg-white px-3 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 dark:bg-slate-900 dark:hover:bg-slate-800 ${
-              error ? "border-red-500" : "border-slate-200 dark:border-slate-800"
-            }`}
+            className={`flex items-center gap-1.5 border border-r-0 bg-white px-3 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 dark:bg-slate-900 dark:hover:bg-slate-800 ${
+              dense ? "h-9 rounded-l-lg" : "h-11 rounded-l-xl"
+            } ${error ? "border-red-500" : "border-slate-200 dark:border-slate-800"}`}
           >
-            <span className="text-base">{selected?.flag || "🇪🇹"}</span>
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{countryCode}</span>
-            <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+            <span className={dense ? "text-sm" : "text-base"}>
+              {selected?.flag || "🇪🇹"}
+            </span>
+            <span
+              className={`font-medium text-slate-600 dark:text-slate-300 ${dense ? "text-xs" : "text-sm"}`}
+            >
+              {countryCode}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+            />
           </button>
 
           {open && (
@@ -104,12 +138,18 @@ export function PhoneField({
                     setOpen(false);
                   }}
                   className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 ${
-                    country.dialCode === countryCode ? "bg-blue-50 dark:bg-blue-950/30" : ""
+                    country.dialCode === countryCode
+                      ? "bg-blue-50 dark:bg-blue-950/30"
+                      : ""
                   }`}
                 >
                   <span>{country.flag}</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-200">{country.name}</span>
-                  <span className="ml-auto text-xs text-slate-500">{country.dialCode}</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-200">
+                    {country.name}
+                  </span>
+                  <span className="ml-auto text-xs text-slate-500">
+                    {country.dialCode}
+                  </span>
                 </button>
               ))}
             </div>
@@ -127,7 +167,7 @@ export function PhoneField({
           placeholder="912345678"
           required
           disabled={disabled}
-          className={`${fieldClass(!!error)} rounded-l-none`}
+          className={`${dense ? denseFieldClass(!!error) : fieldClass(!!error)} rounded-l-none`}
         />
       </div>
       <FieldError message={error} />
@@ -150,6 +190,8 @@ interface PasswordFieldProps {
   labelAction?: ReactNode;
   /** Optional content below the input (e.g. strength meter) */
   children?: ReactNode;
+  /** Compact sizing to match dense forms */
+  dense?: boolean;
 }
 
 export function PasswordField({
@@ -164,6 +206,7 @@ export function PasswordField({
   error,
   labelAction,
   children,
+  dense = false,
 }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
 
@@ -174,7 +217,9 @@ export function PasswordField({
         {labelAction}
       </div>
       <div className="relative flex items-center">
-        <Lock className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400" />
+        <Lock
+          className={`pointer-events-none absolute left-3.5 text-slate-400 ${dense ? "h-3.5 w-3.5" : "h-4 w-4"}`}
+        />
         <Input
           id={id}
           name={name}
@@ -185,7 +230,7 @@ export function PasswordField({
           onChange={onChange}
           required
           disabled={disabled}
-          className={`${fieldClass(!!error)} pl-10 pr-11`}
+          className={`${dense ? denseFieldClass(!!error) : fieldClass(!!error)} ${dense ? "pl-9 pr-9" : "pl-10 pr-11"}`}
         />
         <Button
           type="button"
@@ -193,9 +238,13 @@ export function PasswordField({
           size="icon"
           aria-label={visible ? "Hide password" : "Show password"}
           onClick={() => setVisible((prev) => !prev)}
-          className="absolute right-1.5 h-9 w-9 rounded-lg text-slate-400 hover:text-slate-600"
+          className={`absolute right-1.5 rounded-lg text-slate-400 hover:text-slate-600 ${dense ? "h-7 w-7" : "h-9 w-9"}`}
         >
-          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {visible ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
         </Button>
       </div>
       <FieldError message={error} />
