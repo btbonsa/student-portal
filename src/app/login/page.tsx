@@ -131,7 +131,7 @@ export default function Login() {
   };
 
   return (
-    <main className="grid min-h-screen bg-slate-50 selection:bg-blue-600 selection:text-white dark:bg-slate-950 lg:grid-cols-2">
+    <main className="grid min-h-screen bg-gray-100 dark:bg-slate-950 lg:grid-cols-2">
       <AuthShowcase
         headline="Pick up where"
         accent="you left off"
@@ -195,7 +195,7 @@ export default function Login() {
               >
                 <a
                   href="#"
-                  className="inline-block pt-0.5 text-xs font-semibold text-blue-600 transition-colors hover:text-blue-500 hover:underline dark:text-blue-400"
+                  className="inline-block pt-0.5 text-xs font-semibold text-blue-600/30 transition-colors hover:text-blue-500 hover:underline dark:text-blue-400"
                 >
                   Forgot password?
                 </a>
@@ -204,7 +204,7 @@ export default function Login() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="h-9 w-full gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.99] mt-4"
+                className="h-9 w-full gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-xs shadow-blue-600/30 transition-all duration-200 hover:-translate-y-px hover:bg-blue-500 hover:shadow-sm hover:shadow-blue-600/50 active:scale-[0.98] mt-4"
               >
                 {loading ? (
                   <>
