@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -22,7 +21,6 @@ import {
   Camera,
   CheckCircle2,
   FileImage,
-  IdCard,
   Loader2,
   PencilLine,
   Save,
@@ -297,10 +295,6 @@ export default function ProfilePage() {
                   </span>
                   <BadgeCheck className="h-5 w-5 text-blue-500 shrink-0" />
                 </CardTitle>
-                <CardDescription className="text-sm flex items-center gap-1.5">
-                  <IdCard className="h-3.5 w-3.5" />
-                  Student ID: {profile?.user_id}
-                </CardDescription>
               </div>
             </div>
 
