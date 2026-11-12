@@ -237,7 +237,7 @@ export default function RegisterPage() {
     form.confirm_password.length > 0 && form.password === form.confirm_password;
 
   return (
-    <main className="grid min-h-screen bg-slate-50 selection:bg-blue-600 selection:text-white dark:bg-slate-950 lg:grid-cols-2">
+    <main className="grid min-h-screen bg-gray-100 dark:bg-slate-950 lg:grid-cols-2">
       <AuthShowcase
         headline="Start your"
         accent="journey today"
@@ -365,7 +365,7 @@ export default function RegisterPage() {
 
                   <Button
                     type="submit"
-                    className="mt-1 h-9 w-full gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.99]"
+                    className="mt-1 h-9 w-full gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-md shadow-blue-600/30 transition-all duration-200 hover:-translate-y-px hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-600/50 active:scale-[0.98]"
                   >
                     Continue
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -473,7 +473,7 @@ export default function RegisterPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="h-9 w-full gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.99]"
+                className="h-9 w-full gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:bg-blue-500 hover:shadow-sm hover:shadow-blue-600/50 active:scale-[0.98] mt-4"
                   >
                     {loading ? (
                       <>
