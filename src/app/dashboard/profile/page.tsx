@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getToken } from "@/lib/auth";
-import { getStudentProfile, updateStudentProfile, StudentProfile } from "../../../services/studentservices";
+import { getStudentProfile, updateStudentProfile, changePassword, StudentProfile } from "../../../services/studentservices";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -21,6 +22,7 @@ import {
   Camera,
   CheckCircle2,
   FileImage,
+  KeyRound,
   Loader2,
   PencilLine,
   Save,
@@ -56,6 +58,14 @@ export default function ProfilePage() {
   const [isDragging, setIsDragging] = useState(false);
   const [bioFocused, setBioFocused] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Change password
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
 
   const hasChanges =
     !!selectedFile || bio !== (profile?.bio || "");
@@ -165,6 +175,45 @@ export default function ProfilePage() {
       );
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = getToken();
+
+    setPwError("");
+    setPwSuccess("");
+
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+    if (!pwCurrent || !pwNew || !pwConfirm) {
+      setPwError("All fields are required");
+      return;
+    }
+    if (pwNew.length < 6) {
+      setPwError("New password must be at least 6 characters");
+      return;
+    }
+    if (pwNew !== pwConfirm) {
+      setPwError("New passwords do not match");
+      return;
+    }
+
+    try {
+      setPwLoading(true);
+      await changePassword(token, pwCurrent, pwNew);
+      setPwSuccess("Password changed successfully!");
+      setPwCurrent("");
+      setPwNew("");
+      setPwConfirm("");
+      setTimeout(() => setPwSuccess(""), 4000);
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : "Failed to change password.");
+    } finally {
+      setPwLoading(false);
     }
   };
 
@@ -444,6 +493,98 @@ export default function ProfilePage() {
                 </p>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Change password */}
+        <Card className="border-border/60 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <CardHeader className="px-6 pt-6">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <KeyRound className="h-5 w-5 text-blue-500" />
+              Change Password
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Update the password you use to sign in.
+            </p>
+          </CardHeader>
+          <CardContent className="px-6 pb-6">
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="pw-current" className="text-xs font-medium text-muted-foreground">
+                  Current password
+                </label>
+                <Input
+                  id="pw-current"
+                  type="password"
+                  autoComplete="current-password"
+                  value={pwCurrent}
+                  onChange={(e) => setPwCurrent(e.target.value)}
+                  disabled={pwLoading}
+                  required
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label htmlFor="pw-new" className="text-xs font-medium text-muted-foreground">
+                    New password
+                  </label>
+                  <Input
+                    id="pw-new"
+                    type="password"
+                    autoComplete="new-password"
+                    value={pwNew}
+                    onChange={(e) => setPwNew(e.target.value)}
+                    disabled={pwLoading}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="pw-confirm" className="text-xs font-medium text-muted-foreground">
+                    Confirm new password
+                  </label>
+                  <Input
+                    id="pw-confirm"
+                    type="password"
+                    autoComplete="new-password"
+                    value={pwConfirm}
+                    onChange={(e) => setPwConfirm(e.target.value)}
+                    disabled={pwLoading}
+                    required
+                  />
+                </div>
+              </div>
+
+              {pwError && (
+                <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {pwError}
+                </div>
+              )}
+              {pwSuccess && (
+                <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  {pwSuccess}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={pwLoading}
+                className="gap-2 bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                {pwLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="h-4 w-4" />
+                    Update password
+                  </>
+                )}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
