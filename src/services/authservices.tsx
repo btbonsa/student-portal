@@ -4,6 +4,7 @@ import {
 } from "@/types/auth";
 
 export interface RegisterData {
+  branch_id: number;
   phone: string;
   password: string;
 }

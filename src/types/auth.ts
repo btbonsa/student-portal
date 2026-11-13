@@ -8,6 +8,8 @@ export interface User {
   email: string;
   phone: string;
   role: UserRole;
+  branch_id?: number | null;
+  branch_name?: string | null;
 }
 
 export interface LoginResponse {
@@ -26,5 +28,7 @@ export interface RegisterResponse {
     email: string;
     phone: string;
     role: "STUDENT";
+    branch_id?: number | null;
+    branch_name?: string | null;
   };
 }

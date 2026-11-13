@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        branch_id: validatedData.branch_id,
         phone: validatedData.phone,
         password: validatedData.password,
       }),
