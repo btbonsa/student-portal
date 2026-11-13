@@ -23,6 +23,21 @@ export async function getStudentProfile(token: string): Promise<StudentProfile> 
   return response.student;
 }
 
+export async function changePassword(
+  token: string,
+  current_password: string,
+  new_password: string
+): Promise<{ success: boolean; message: string }> {
+  return apiRequest<{ success: boolean; message: string }>(
+    "/auth/change-password",
+    {
+      method: "PUT",
+      body: JSON.stringify({ current_password, new_password }),
+    },
+    token
+  );
+}
+
 export async function updateStudentProfile(
   token: string,
   formData: FormData
