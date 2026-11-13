@@ -207,6 +207,10 @@ export const registerSchema = z.object({
  * Backend registration schema (without confirm_password)
  */
 export const registerBackendSchema = z.object({
+  branch_id: z
+    .number()
+    .int("Please select a branch")
+    .positive("Please select a branch"),
   phone: z
     .string()
     .min(1, "Phone number is required")

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import {
   AlertCircle,
   ArrowRight,
+  Building2,
   Check,
   GraduationCap,
   Loader2,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { registerStudent } from "../../services/authservices";
+import { getActiveBranches, type Branch } from "@/services/branchservices";
 import { saveAuth } from "@/lib/auth";
 import apiRequest from "@/services/apiservices";
 import { registerSchema, checkPasswordStrength } from "@/lib/validation";
@@ -71,6 +73,7 @@ export default function RegisterPage() {
     last_name: "",
     gender: "MALE",
     date_of_birth: "",
+    branch_id: "",
     phone: "",
     countryCode: "+251",
     password: "",
@@ -83,6 +86,9 @@ export default function RegisterPage() {
   const [passwordStrength, setPasswordStrength] = useState(
     checkPasswordStrength("")
   );
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(true);
+  const [branchesError, setBranchesError] = useState("");
 
   const accountToken = useRef<string | null>(null);
 
@@ -91,6 +97,27 @@ export default function RegisterPage() {
   useEffect(() => {
     router.prefetch("/dashboard/programs");
   }, [router]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getActiveBranches()
+      .then((data) => {
+        if (cancelled) return;
+        setBranches(data);
+        setBranchesError("");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to load branches:", err);
+        setBranchesError("Couldn't load branches. Please refresh and try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setBranchesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const updateField = (name: string, value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -119,6 +146,7 @@ export default function RegisterPage() {
     if (!form.first_name.trim()) errors.first_name = "Enter your first name";
     if (!form.last_name.trim()) errors.last_name = "Enter your last name";
     if (!form.date_of_birth) errors.date_of_birth = "Choose your date of birth";
+    if (!form.branch_id) errors.branch_id = "Select your branch";
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -173,6 +201,7 @@ export default function RegisterPage() {
 
       if (!accountToken.current) {
         const response = await registerStudent({
+          branch_id: Number(form.branch_id),
           phone: normalizedPhone,
           password: validationResult.data.password,
         });
@@ -361,6 +390,86 @@ export default function RegisterPage() {
                       className={denseFieldClass(!!fieldErrors.date_of_birth)}
                     />
                     <InlineError message={fieldErrors.date_of_birth} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className={mutedLabelClass}>
+                      Select your branch
+                    </span>
+                    {branchesLoading ? (
+                      <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 py-4 text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Loading branches...
+                      </div>
+                    ) : branchesError ? (
+                      <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-3 text-xs font-medium text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {branchesError}
+                      </div>
+                    ) : branches.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-3 py-4 text-center text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
+                        No branches available right now
+                      </div>
+                    ) : (
+                      <div
+                        role="radiogroup"
+                        aria-label="Select your branch"
+                        className="grid gap-2"
+                      >
+                        {branches.map((branch) => {
+                          const selected = form.branch_id === String(branch.id);
+                          return (
+                            <button
+                              key={branch.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              onClick={() => updateField("branch_id", String(branch.id))}
+                              className={`group flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-all duration-200 ${
+                                selected
+                                  ? "border-blue-500 bg-blue-50/80 shadow-sm shadow-blue-500/20 dark:border-blue-500 dark:bg-blue-950/40"
+                                  : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
+                              } ${fieldErrors.branch_id ? "border-rose-300 dark:border-rose-800" : ""}`}
+                            >
+                              <span
+                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                                  selected
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-blue-950 dark:group-hover:text-blue-400"
+                                }`}
+                              >
+                                <Building2 className="h-4.5 w-4.5" aria-hidden="true" />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span
+                                  className={`block truncate text-sm font-semibold ${
+                                    selected
+                                      ? "text-blue-700 dark:text-blue-300"
+                                      : "text-slate-800 dark:text-slate-200"
+                                  }`}
+                                >
+                                  {branch.branch_name}
+                                </span>
+                                <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                                  {selected ? "Selected branch" : "Tap to choose this branch"}
+                                </span>
+                              </span>
+                              <span
+                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                                  selected
+                                    ? "border-blue-600 bg-blue-600 text-white"
+                                    : "border-slate-300 text-transparent dark:border-slate-600"
+                                }`}
+                                aria-hidden="true"
+                              >
+                                <Check className="h-3 w-3" strokeWidth={3.5} />
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <InlineError message={fieldErrors.branch_id} />
                   </div>
 
                   <Button
