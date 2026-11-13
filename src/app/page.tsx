@@ -193,8 +193,6 @@ const testimonials: {
     name: "Bonsa T.",
     role: "Mobile Maintenance graduate",
     initials: "HG",
-    image:
-      "https://res.cloudinary.com/dzqma6sfk/image/upload/v1794247413/college-registration/student-profiles/fqoua0mac88a3mxoyzax.jpg",
   },
   {
     quote:
