@@ -44,8 +44,8 @@ const MAX_SIZE = 5 * 1024 * 1024;
 
 // Replace with your real details (or load them from your API / env)
 const PAYMENT_DETAILS = [
-  { key: "account", label: "Bank account number", value: "1000123456789", icon: Landmark },
-  { key: "telebirr", label: "Telebirr number", value: "0911234567", icon: Smartphone },
+  { key: "account", label: "Bank account number", value: "1000803504761", icon: Landmark },
+  { key: "telebirr", label: "Telebirr number", value: "0964208061", icon: Smartphone },
 ];
 
 const PAYMENT_METHODS: { value: string; label: string; icon: LucideIcon }[] = [
